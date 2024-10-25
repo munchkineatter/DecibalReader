@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Decibel Monitor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Decibel Monitor</h1>
+            <div class="controls">
+                <button id="startBtn" class="btn">Start</button>
+                <button id="pauseBtn" class="btn" disabled>Pause</button>
+                <button id="stopBtn" class="btn" disabled>Stop</button>
+                <button id="resetBtn" class="btn" disabled>Reset</button>
+                <button id="recordBtn" class="btn record-btn" disabled>Record Session</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="monitor-section">
+                <div class="current-reading">
+                    <div class="decibel-display">
+                        <span id="currentDb">0</span>
+                        <span class="unit">dB</span>
+                    </div>
+                    <div class="max-reading">
+                        Max: <span id="maxDb">0</span> dB
+                    </div>
+                </div>
+
+                <div class="graph-container">
+                    <canvas id="decibelGraph"></canvas>
+                    <div class="time-range">
+                        <select id="timeRange">
+                            <option value="10">Last 10 seconds</option>
+                            <option value="30">Last 30 seconds</option>
+                            <option value="60">Last 60 seconds</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="session-summary" id="sessionSummary">
+                    <h2>Session Summary</h2>
+                    <div class="summary-stats">
+                        <div>Peak: <span id="peakDb">0</span> dB</div>
+                        <div>Average: <span id="avgDb">0</span> dB</div>
+                        <div>Minimum: <span id="minDb">0</span> dB</div>
+                    </div>
+                    <button id="exportBtn" class="btn" disabled>Export Data</button>
+                </div>
+            </div>
+
+            <div class="session-log">
+                <h2>Session Log</h2>
+                <div class="log-entries" id="logEntries">
+                    <!-- Session entries will be added here dynamically -->
+                </div>
+            </div>
+
+            <!-- Add this after the header -->
+            <div class="session-controls">
+                <div id="recorderControls" class="hidden">
+                    <h3>Share this session ID:</h3>
+                    <div class="session-id">
+                        <span id="sessionIdDisplay"></span>
+                        <button id="copySessionId" class="btn">Copy</button>
+                    </div>
+                </div>
+                <div id="viewerControls">
+                    <h3>Join a session:</h3>
+                    <div class="session-join">
+                        <input type="text" id="sessionIdInput" placeholder="Enter Session ID">
+                        <button id="joinSession" class="btn">Join</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="decibelMeter.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
