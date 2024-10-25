@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const timeRange = document.getElementById('timeRange');
     const recordBtn = document.getElementById('recordBtn');
     const logEntries = document.getElementById('logEntries');
+    const recorderControls = document.getElementById('recorderControls');
+    const viewerControls = document.getElementById('viewerControls');
+    const sessionIdDisplay = document.getElementById('sessionIdDisplay');
+    const copySessionId = document.getElementById('copySessionId');
+    const sessionIdInput = document.getElementById('sessionIdInput');
+    const joinSession = document.getElementById('joinSession');
     
     // Initialize Chart.js
     function initializeChart() {
@@ -110,8 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         logEntries.insertBefore(entryDiv, logEntries.firstChild);
     }
 
-    // Event Listeners
-    startBtn.addEventListener('click', async () => {
+    async function startRecording() {
         if (!meter.audioContext) {
             const initialized = await meter.initialize();
             if (!initialized) {
@@ -120,18 +125,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        meter.start();
-        startBtn.disabled = true;
-        pauseBtn.disabled = false;
-        stopBtn.disabled = false;
-        resetBtn.disabled = true;
-        
-        if (!chart) {
-            initializeChart();
+        try {
+            // Connect as recorder
+            const sessionId = await meter.connectWebSocket('recorder');
+            sessionIdDisplay.textContent = sessionId;
+            recorderControls.classList.remove('hidden');
+            viewerControls.classList.add('hidden');
+
+            meter.start();
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            resetBtn.disabled = true;
+            
+            if (!chart) {
+                initializeChart();
+            }
+            
+            updateDisplay();
+            recordBtn.disabled = false;
+        } catch (error) {
+            alert('Failed to create recording session: ' + error.message);
         }
-        
-        updateDisplay();
-        recordBtn.disabled = false;
+    }
+
+    async function joinViewerSession() {
+        const sessionId = sessionIdInput.value.trim();
+        if (!sessionId) {
+            alert('Please enter a session ID');
+            return;
+        }
+
+        try {
+            await meter.connectWebSocket('viewer', sessionId);
+            viewerControls.classList.add('hidden');
+            
+            if (!chart) {
+                initializeChart();
+            }
+
+            // Listen for decibel updates
+            window.addEventListener('decibelUpdate', (event) => {
+                const reading = event.detail;
+                document.getElementById('currentDb').textContent = reading.value;
+                document.getElementById('maxDb').textContent = meter.maxDecibel;
+
+                chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
+                chart.data.datasets[0].data.push(reading.value);
+
+                while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+
+                chart.update();
+            });
+
+            // Listen for session end
+            window.addEventListener('sessionEnded', () => {
+                alert('Recording session has ended');
+                location.reload();
+            });
+
+        } catch (error) {
+            alert('Failed to join session: ' + error.message);
+        }
+    }
+
+    // Event Listeners
+    startBtn.addEventListener('click', startRecording);
+    joinSession.addEventListener('click', joinViewerSession);
+
+    copySessionId.addEventListener('click', () => {
+        navigator.clipboard.writeText(sessionIdDisplay.textContent)
+            .then(() => alert('Session ID copied to clipboard'))
+            .catch(err => console.error('Failed to copy:', err));
     });
 
     pauseBtn.addEventListener('click', () => {

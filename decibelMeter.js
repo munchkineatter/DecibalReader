@@ -59,7 +59,7 @@ class DecibelMeter {
 
     async connectWebSocket(role, sessionId = null) {
         // Update this URL when you deploy to Render
-        const wsUrl = 'wss://dbserver-jigl.onrender.com';
+        const wsUrl = 'wss://your-app-name.onrender.com';
         
         this.ws = new WebSocket(wsUrl);
         this.role = role;
