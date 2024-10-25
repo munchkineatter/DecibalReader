@@ -58,19 +58,22 @@ class DecibelMeter {
     }
 
     async connectWebSocket(role, sessionId = null) {
-        // Update this URL when you deploy to Render
         const wsUrl = 'wss://dbserver-jigl.onrender.com';
+        console.log('Connecting to WebSocket:', wsUrl);
         
         this.ws = new WebSocket(wsUrl);
         this.role = role;
 
         return new Promise((resolve, reject) => {
             this.ws.onopen = () => {
+                console.log('WebSocket connected!');
                 if (role === 'recorder') {
+                    console.log('Sending create_session request');
                     this.ws.send(JSON.stringify({
                         type: 'create_session'
                     }));
                 } else {
+                    console.log('Sending join_session request:', sessionId);
                     this.ws.send(JSON.stringify({
                         type: 'join_session',
                         sessionId
@@ -79,6 +82,7 @@ class DecibelMeter {
             };
 
             this.ws.onmessage = (event) => {
+                console.log('Received message:', event.data);
                 const data = JSON.parse(event.data);
                 
                 switch(data.type) {
@@ -107,7 +111,12 @@ class DecibelMeter {
             };
 
             this.ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
                 reject(error);
+            };
+
+            this.ws.onclose = () => {
+                console.log('WebSocket connection closed');
             };
         });
     }
