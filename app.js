@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
+            // Ensure 'meter' is accessible and has the correct role
             await meter.connectWebSocket('viewer', sessionId);
             viewerControls.classList.add('hidden');
             
@@ -481,6 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     window.addEventListener('sessionReset', () => {
+        console.log('sessionReset event received');
         // Clear the session log display
         logEntries.innerHTML = '';
 

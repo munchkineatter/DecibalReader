@@ -96,6 +96,7 @@ class DecibelMeter {
 
                 this.ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
+                    console.log(`WebSocket message received:`, data);
                     
                     switch(data.type) {
                         case 'session_created':
@@ -199,6 +200,7 @@ class DecibelMeter {
                             }));
                             break;
                         case 'session_reset':
+                            console.log('Received session_reset message');
                             // Clear session log and readings
                             this.sessionLog = [];
                             this.readings = [];
