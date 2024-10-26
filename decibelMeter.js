@@ -256,7 +256,8 @@ class DecibelMeter {
             if (this.isRecording) {
                 const reading = {
                     time: new Date(),
-                    value: decibel
+                    value: decibel,
+                    maxDecibel: this.maxDecibel  // Include maxDecibel in the reading
                 };
                 this.readings.push(reading);
 
@@ -285,7 +286,10 @@ class DecibelMeter {
         }
 
         this.readings.push(reading);
-        if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
+        // Update maxDecibel if the new reading is higher
+        if (reading.maxDecibel !== undefined) {
+            this.maxDecibel = reading.maxDecibel;
+        } else if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
         window.dispatchEvent(new CustomEvent('decibelUpdate', { 

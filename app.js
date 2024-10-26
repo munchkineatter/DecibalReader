@@ -260,8 +260,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('decibelUpdate', (event) => {
         const reading = event.detail;
         document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
-        // Use the maxDecibel from the event
-        document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
+        
+        // Update maxDb display with the received maxDecibel value
+        if (reading.maxDecibel !== undefined) {
+            document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
+        }
 
         if (chart) {
             chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
