@@ -322,20 +322,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     resetBtn.addEventListener('click', () => {
-        meter.reset();
-        stopTimer();
-
-        // Reset UI elements
+        console.log('[Reset] Reset button clicked');
+        
+        // First clear local UI
         document.getElementById('currentDb').textContent = '0.000';
         document.getElementById('maxDb').textContent = '0.000';
-
-        chart.data.labels = [];
-        chart.data.datasets[0].data = [];
-        chart.update();
-
-        // Clear the session log display
-        logEntries.innerHTML = '';
-
+        logEntries.innerHTML = ''; // Clear the session log display
+        
+        if (chart) {
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
+        }
+        
+        // Reset meter and send reset message to server
+        meter.reset();
+        stopTimer();
+        
+        // Update button states
         resetBtn.disabled = true;
         exportBtn.disabled = true;
         startBtn.disabled = false;
@@ -483,17 +487,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         detail: { ...session, source: 'server' }
     }));
 
-    window.addEventListener('sessionReset', () => {
-        console.log('[Event] sessionReset event received');
+    window.addEventListener('sessionReset', (event) => {
+        console.log('[Event] sessionReset event received', event.detail);
 
         // Clear the session log display
         logEntries.innerHTML = '';
 
-        // Reset max and current decibel displays
+        // Reset displays
         document.getElementById('currentDb').textContent = '0.000';
         document.getElementById('maxDb').textContent = '0.000';
 
-        // Clear chart data
+        // Clear chart
         if (chart) {
             chart.data.labels = [];
             chart.data.datasets[0].data = [];
@@ -504,13 +508,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopTimer();
         timerDisplay.classList.add('hidden');
 
-        // Update buttons' state
+        // Update buttons
         resetBtn.disabled = true;
         exportBtn.disabled = true;
-
-        // If the user is a viewer, disable start button
+        
+        // If viewer, keep start button disabled
         if (meter.role === 'viewer') {
             startBtn.disabled = true;
+        } else {
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start';
         }
     });
 });

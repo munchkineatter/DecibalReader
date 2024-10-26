@@ -60,17 +60,19 @@ class DecibelMeter {
     }
 
     reset() {
+        console.log('[DecibelMeter] Resetting meter');
         this.readings = [];
         this.maxDecibel = 0;
         this.sessionLog = []; // Clear the session log
 
-        // **Send reset message to server if recorder**
-        if (this.role === 'recorder' && this.ws) {
+        // Send reset message to server if we're the recorder
+        if (this.role === 'recorder' && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            console.log('[DecibelMeter] Sending session_reset to server');
             this.ws.send(JSON.stringify({
-                type: 'session_reset'
+                type: 'session_reset',
+                sessionId: this.sessionId
             }));
         }
-        // Don't reset the analyzer or connection
     }
 
     async connectWebSocket(role, sessionId = null) {
@@ -202,13 +204,18 @@ class DecibelMeter {
                             break;
                         case 'session_reset':
                             console.log('[WebSocket] Received session_reset message');
-                            // Clear session log and readings
-                            this.sessionLog = [];
+                            // Clear all data
                             this.readings = [];
                             this.maxDecibel = 0;
-
-                            // Dispatch event to update the UI
-                            window.dispatchEvent(new CustomEvent('sessionReset'));
+                            this.sessionLog = [];
+                            
+                            // Dispatch event to update UI
+                            console.log('[WebSocket] Dispatching sessionReset event');
+                            window.dispatchEvent(new CustomEvent('sessionReset', {
+                                detail: {
+                                    sessionId: this.sessionId
+                                }
+                            }));
                             break;
                         default:
                             console.warn('Unhandled message type:', data.type);
