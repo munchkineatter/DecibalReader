@@ -98,6 +98,16 @@ class DecibelMeter {
                         case 'session_joined':
                             this.sessionId = sessionId;
                             this.isRecording = data.isActive;
+                            // Load existing session log
+                            if (data.sessionLog) {
+                                this.sessionLog = data.sessionLog;
+                                // Update UI for each session
+                                data.sessionLog.forEach(session => {
+                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                        detail: session
+                                    }));
+                                });
+                            }
                             if (data.timerData) {
                                 window.dispatchEvent(new CustomEvent('timerSync', { 
                                     detail: data.timerData 
@@ -118,6 +128,14 @@ class DecibelMeter {
                             window.dispatchEvent(new CustomEvent('timerSync', { 
                                 detail: data.timerData 
                             }));
+                            break;
+                        case 'session_recorded':
+                            if (this.role === 'viewer') {
+                                this.sessionLog.push(data.session);
+                                window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                    detail: data.session
+                                }));
+                            }
                             break;
                     }
                 };
@@ -226,7 +244,7 @@ class DecibelMeter {
             sessionNumber: this.sessionLog.length + 1,
             id: Date.now(),
             timestamp: new Date(),
-            duration: this.calculateDuration(),  // New method for duration
+            duration: this.calculateDuration(),
             max: sessionData.max,
             avg: sessionData.avg,
             min: sessionData.min
@@ -234,7 +252,15 @@ class DecibelMeter {
         
         this.sessionLog.push(session);
         
-        // Only reset readings, not the connection
+        // Send session to server if we're the recorder
+        if (this.role === 'recorder' && this.ws) {
+            this.ws.send(JSON.stringify({
+                type: 'session_recorded',
+                session: session
+            }));
+        }
+        
+        // Reset readings and maxDecibel but maintain connection
         this.readings = [];
         this.maxDecibel = 0;
         

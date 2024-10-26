@@ -103,10 +103,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addSessionToLog(session) {
+        // Check if session already exists in the log
+        const existingEntry = document.querySelector(`[data-session-id="${session.id}"]`);
+        if (existingEntry) return;
+
         const entryDiv = document.createElement('div');
         entryDiv.className = 'log-entry';
+        entryDiv.setAttribute('data-session-id', session.id);
         entryDiv.innerHTML = `
-            <h3>Session #${session.sessionNumber} - ${session.timestamp.toLocaleTimeString()}</h3>
+            <h3>Session #${session.sessionNumber} - ${new Date(session.timestamp).toLocaleTimeString()}</h3>
             <div class="log-entry-stats">
                 <div>Duration: ${formatDuration(session.duration)}s</div>
                 <div>Peak: ${parseFloat(session.max).toFixed(3)} dB</div>
@@ -451,5 +456,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chart.update();
             }
         }
+    });
+
+    // Add session logged event listener
+    window.addEventListener('sessionLogged', (event) => {
+        const session = event.detail;
+        addSessionToLog(session);
     });
 });
