@@ -142,12 +142,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 meter.stop();
                 cancelAnimationFrame(animationFrame);
                 
-                // Update session summary
-                const sessionData = meter.getSessionData();
-                document.getElementById('peakDb').textContent = sessionData.max;
-                document.getElementById('avgDb').textContent = sessionData.avg;
-                document.getElementById('minDb').textContent = sessionData.min;
-                
                 // Record the session
                 const session = meter.recordSession();
                 addSessionToLog(session);
@@ -157,7 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 stopBtn.disabled = true;
                 resetBtn.disabled = false;
                 exportBtn.disabled = false;
-                recordBtn.disabled = true;
+                recordBtn.disabled = false;
+                recordBtn.textContent = 'Start New Session';
                 timerDisplay.classList.add('hidden');
             }
         }, 1000);
@@ -320,10 +315,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     recordBtn.addEventListener('click', () => {
         if (!meter.isRecording) {
+            // Starting new session
             startRecording();
+            recordBtn.textContent = 'Record Session';
         } else {
+            // Recording current session
             const session = meter.recordSession();
             addSessionToLog(session);
+            // Don't stop the recording, just reset the readings for the next session
+            meter.readings = [];
+            meter.maxDecibel = 0;
         }
     });
 

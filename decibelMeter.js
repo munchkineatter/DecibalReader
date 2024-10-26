@@ -209,8 +209,12 @@ class DecibelMeter {
         };
         
         this.sessionLog.push(session);
-        this.readings = [];
-        this.maxDecibel = 0;
+        
+        // Only reset readings and maxDecibel if we're not stopping the session
+        if (!this.isRecording) {
+            this.readings = [];
+            this.maxDecibel = 0;
+        }
         
         return session;
     }
