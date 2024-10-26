@@ -35,7 +35,7 @@ class DecibelMeter {
     start() {
         this.isRecording = true;
         this.readings = [];
-        this.maxDecibel = 0;
+        this.maxDecibel = 0; // Only reset maxDecibel when starting new recording
         // Make sure analyzer is ready
         if (!this.analyzer && this.audioContext) {
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
@@ -193,13 +193,16 @@ class DecibelMeter {
     }
 
     handleDecibelUpdate(reading) {
-        // Remove the role check since we want to handle updates for all viewers
         this.readings.push(reading);
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
-        // Always dispatch the event for UI updates
-        window.dispatchEvent(new CustomEvent('decibelUpdate', { detail: reading }));
+        window.dispatchEvent(new CustomEvent('decibelUpdate', { 
+            detail: { 
+                ...reading,
+                maxDecibel: this.maxDecibel // Include maxDecibel in the event
+            }
+        }));
     }
 
     handleSessionEnded() {
@@ -255,17 +258,16 @@ class DecibelMeter {
         // Add to local session log
         this.sessionLog.push(session);
         
-        // Only recorder should send session_recorded message
-        if (this.role === 'recorder' && this.ws) {
+        // Always send session_recorded message when in a session
+        if (this.ws) {
             this.ws.send(JSON.stringify({
                 type: 'session_recorded',
                 session: session
             }));
         }
         
-        // Reset readings and maxDecibel but maintain connection
+        // Only reset readings, keep maxDecibel until new recording starts
         this.readings = [];
-        this.maxDecibel = 0;
         
         return session;
     }

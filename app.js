@@ -255,17 +255,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('decibelUpdate', (event) => {
         const reading = event.detail;
         document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
-        document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
+        // Use the maxDecibel from the event
+        document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
 
-        chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
-        chart.data.datasets[0].data.push(reading.value);
+        if (chart) {
+            chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
+            chart.data.datasets[0].data.push(reading.value);
 
-        while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+            while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.update();
         }
-
-        chart.update();
     });
 
     window.addEventListener('sessionEnded', () => {
@@ -461,13 +464,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add session logged event listener
+    // Update the sessionLogged event listener
     window.addEventListener('sessionLogged', (event) => {
         const session = event.detail;
-        // Only add if we're the recorder or if this is a new session from the server
-        if (meter.role === 'recorder' || event.source === 'server') {
-            addSessionToLog(session);
-        }
+        // Always add the session to the log, regardless of role
+        addSessionToLog(session);
     });
 
     // Update handleDecibelUpdate in DecibelMeter class to include source
