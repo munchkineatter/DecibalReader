@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const startBtn = document.getElementById('startBtn');
     const newSessionBtn = document.getElementById('newSessionBtn');
     const disconnectSession = document.getElementById('disconnectSession');
+    const resetViewLogBtn = document.getElementById('resetViewLogBtn');
     
     let timerInterval = null;
     let remainingTime = 0;
@@ -525,5 +526,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             startBtn.disabled = false;
             startBtn.textContent = 'Start';
         }
+    });
+
+    resetViewLogBtn.addEventListener('click', () => {
+        console.log('[Reset View] Reset view log button clicked');
+        
+        // Send reset view message through meter
+        if (meter.role === 'recorder') {
+            meter.resetViewLog();
+        }
+    });
+
+    // Add this with your other event listeners
+    window.addEventListener('viewLogReset', () => {
+        console.log('[Event] viewLogReset event received');
+        // Clear the session log display
+        logEntries.innerHTML = '';
     });
 });

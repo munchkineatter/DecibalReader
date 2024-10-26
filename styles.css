@@ -335,3 +335,13 @@ canvas#decibelGraph {
 .disconnect-btn:hover:not(:disabled) {
     background-color: #8a2828;
 }
+
+.reset-view-btn {
+    width: 80%;
+    margin: 1rem auto 0;
+    background-color: #8B0000; /* Dark red color */
+}
+
+.reset-view-btn:hover:not(:disabled) {
+    background-color: #A52A2A;
+}

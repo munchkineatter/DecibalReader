@@ -214,6 +214,15 @@ class DecibelMeter {
                             // Dispatch event to update the UI
                             window.dispatchEvent(new CustomEvent('sessionReset'));
                             break;
+                        case 'reset_view_log':
+                            console.log('[WebSocket] Received reset_view_log message');
+                            if (this.role === 'viewer') {
+                                // Clear session log
+                                this.sessionLog = [];
+                                // Dispatch event to update the UI
+                                window.dispatchEvent(new CustomEvent('viewLogReset'));
+                            }
+                            break;
                         default:
                             console.warn('Unhandled message type:', data.type);
                     }
@@ -381,5 +390,16 @@ class DecibelMeter {
         const start = new Date(this.readings[0].time).getTime();
         const end = new Date(this.readings[this.readings.length - 1].time).getTime();
         return (end - start) / 1000; // Duration in seconds
+    }
+
+    resetViewLog() {
+        console.log('[DecibelMeter] Resetting view log');
+        if (this.role === 'recorder' && this.ws && this.ws.readyState === WebSocket.OPEN) {
+            console.log('[DecibelMeter] Sending reset_view_log to server');
+            this.ws.send(JSON.stringify({
+                type: 'reset_view_log',
+                sessionId: this.sessionId
+            }));
+        }
     }
 }
