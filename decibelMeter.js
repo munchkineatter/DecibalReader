@@ -130,7 +130,8 @@ class DecibelMeter {
                             }));
                             break;
                         case 'session_recorded':
-                            if (this.role === 'viewer') {
+                            // Handle session recording for both recorder and viewer
+                            if (!this.sessionLog.some(s => s.id === data.session.id)) {
                                 this.sessionLog.push(data.session);
                                 window.dispatchEvent(new CustomEvent('sessionLogged', {
                                     detail: data.session
@@ -250,10 +251,11 @@ class DecibelMeter {
             min: sessionData.min
         };
         
+        // Add to local session log
         this.sessionLog.push(session);
         
-        // Send session to server if we're the recorder
-        if (this.role === 'recorder' && this.ws) {
+        // Send session to server for all roles
+        if (this.ws) {
             this.ws.send(JSON.stringify({
                 type: 'session_recorded',
                 session: session
