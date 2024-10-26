@@ -102,7 +102,7 @@ class DecibelMeter {
                             // Load existing session log
                             if (data.sessionLog) {
                                 this.sessionLog = data.sessionLog;
-                                // Update UI for each session only for viewer
+                                // Only update UI for existing sessions if we're a viewer
                                 if (this.role === 'viewer') {
                                     data.sessionLog.forEach(session => {
                                         window.dispatchEvent(new CustomEvent('sessionLogged', {
@@ -134,10 +134,14 @@ class DecibelMeter {
                             break;
                         case 'session_recorded':
                             if (this.role === 'viewer') {
-                                this.sessionLog.push(data.session);
-                                window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                    detail: data.session
-                                }));
+                                // Check if session already exists in log
+                                const exists = this.sessionLog.some(s => s.id === data.session.id);
+                                if (!exists) {
+                                    this.sessionLog.push(data.session);
+                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                        detail: data.session
+                                    }));
+                                }
                             }
                             break;
                     }
@@ -263,25 +267,26 @@ class DecibelMeter {
             min: sessionData.min
         };
         
-        // Add to local session log only if we're the recorder
+        // Only handle session recording if we're the recorder
         if (this.role === 'recorder') {
+            // Add to local session log
             this.sessionLog.push(session);
             
-            // Send session to server
+            // Send to server for broadcasting
             if (this.ws) {
                 this.ws.send(JSON.stringify({
                     type: 'session_recorded',
                     session: session
                 }));
             }
-            
-            // Dispatch event locally only for recorder
+
+            // Only dispatch event locally for recorder
             window.dispatchEvent(new CustomEvent('sessionLogged', {
                 detail: session
             }));
         }
         
-        // Only reset readings, keep maxDecibel until new recording starts
+        // Reset readings but keep maxDecibel until new recording starts
         this.readings = [];
         
         return session;
