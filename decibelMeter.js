@@ -131,12 +131,14 @@ class DecibelMeter {
                             }));
                             break;
                         case 'session_recorded':
-                            // Handle session recording for both recorder and viewer
-                            if (!this.sessionLog.some(s => s.id === data.session.id)) {
-                                this.sessionLog.push(data.session);
-                                window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                    detail: data.session
-                                }));
+                            if (this.role === 'viewer') {
+                                // Only add if not already in log
+                                if (!this.sessionLog.some(s => s.id === data.session.id)) {
+                                    this.sessionLog.push(data.session);
+                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                        detail: data.session
+                                    }));
+                                }
                             }
                             break;
                     }
@@ -258,8 +260,8 @@ class DecibelMeter {
         // Add to local session log
         this.sessionLog.push(session);
         
-        // Always send session_recorded message when in a session
-        if (this.ws) {
+        // Send session to server only if we're the recorder
+        if (this.role === 'recorder' && this.ws) {
             this.ws.send(JSON.stringify({
                 type: 'session_recorded',
                 session: session
@@ -268,6 +270,11 @@ class DecibelMeter {
         
         // Only reset readings, keep maxDecibel until new recording starts
         this.readings = [];
+        
+        // Always dispatch the event locally
+        window.dispatchEvent(new CustomEvent('sessionLogged', {
+            detail: session
+        }));
         
         return session;
     }
