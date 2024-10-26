@@ -133,15 +133,15 @@ class DecibelMeter {
                             }));
                             break;
                         case 'session_recorded':
-                            if (this.role === 'viewer') {
-                                // Check if session already exists in log
-                                const exists = this.sessionLog.some(s => s.id === data.session.id);
-                                if (!exists) {
-                                    this.sessionLog.push(data.session);
-                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                        detail: data.session
-                                    }));
-                                }
+                            // Handle session recording for both recorder and viewer
+                            const exists = this.sessionLog.some(s => 
+                                Math.abs(new Date(s.timestamp) - new Date(data.session.timestamp)) < 1000
+                            );
+                            if (!exists) {
+                                this.sessionLog.push(data.session);
+                                window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                    detail: data.session
+                                }));
                             }
                             break;
                     }
@@ -269,21 +269,13 @@ class DecibelMeter {
         
         // Only handle session recording if we're the recorder
         if (this.role === 'recorder') {
-            // Add to local session log
-            this.sessionLog.push(session);
-            
-            // Send to server for broadcasting
+            // Let the server handle the session log management
             if (this.ws) {
                 this.ws.send(JSON.stringify({
                     type: 'session_recorded',
                     session: session
                 }));
             }
-
-            // Only dispatch event locally for recorder
-            window.dispatchEvent(new CustomEvent('sessionLogged', {
-                detail: session
-            }));
         }
         
         // Reset readings but keep maxDecibel until new recording starts
