@@ -204,18 +204,14 @@ class DecibelMeter {
                             break;
                         case 'session_reset':
                             console.log('[WebSocket] Received session_reset message');
-                            // Clear all data
+
+                            // Clear session log and readings
+                            this.sessionLog = [];
                             this.readings = [];
                             this.maxDecibel = 0;
-                            this.sessionLog = [];
-                            
-                            // Dispatch event to update UI
-                            console.log('[WebSocket] Dispatching sessionReset event');
-                            window.dispatchEvent(new CustomEvent('sessionReset', {
-                                detail: {
-                                    sessionId: this.sessionId
-                                }
-                            }));
+
+                            // Dispatch event to update the UI
+                            window.dispatchEvent(new CustomEvent('sessionReset'));
                             break;
                         default:
                             console.warn('Unhandled message type:', data.type);
