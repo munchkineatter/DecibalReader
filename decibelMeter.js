@@ -63,11 +63,18 @@ class DecibelMeter {
         this.readings = [];
         this.maxDecibel = 0;
         this.sessionLog = []; // Clear the session log
+
+        // **Send reset message to server if recorder**
+        if (this.role === 'recorder' && this.ws) {
+            this.ws.send(JSON.stringify({
+                type: 'session_reset'
+            }));
+        }
         // Don't reset the analyzer or connection
     }
 
     async connectWebSocket(role, sessionId = null) {
-        const wsUrl = 'wss://dbserver-1-jchv.onrender.com';
+        const wsUrl = 'wss://dbserver-jigl.onrender.com';
         
         try {
             this.ws = new WebSocket(wsUrl);
@@ -98,6 +105,28 @@ class DecibelMeter {
 
                             // Clear existing session log
                             this.sessionLog = [];
+
+                            // Load session log if provided
+                            if (data.sessionLog && Array.isArray(data.sessionLog)) {
+                                // Create a Map to ensure uniqueness by ID
+                                const uniqueSessions = new Map();
+                                data.sessionLog.forEach(session => {
+                                    if (!uniqueSessions.has(session.id)) {
+                                        uniqueSessions.set(session.id, session);
+                                    }
+                                });
+                                
+                                // Convert Map back to array and sort by timestamp
+                                this.sessionLog = Array.from(uniqueSessions.values())
+                                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                
+                                // Update UI with existing sessions
+                                this.sessionLog.forEach(session => {
+                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                        detail: session
+                                    }));
+                                });
+                            }
 
                             if (data.timerData) {
                                 window.dispatchEvent(new CustomEvent('timerSync', { 
@@ -130,14 +159,12 @@ class DecibelMeter {
                                 this.sessionLog = Array.from(uniqueSessions.values())
                                     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                                 
-                                // Update UI for each unique session
-                                if (this.role === 'viewer') {
-                                    this.sessionLog.forEach(session => {
-                                        window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                            detail: session
-                                        }));
-                                    });
-                                }
+                                // Update UI for both viewer and recorder
+                                this.sessionLog.forEach(session => {
+                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                        detail: session
+                                    }));
+                                });
                             }
                             
                             if (data.timerData) {
@@ -170,6 +197,15 @@ class DecibelMeter {
                             window.dispatchEvent(new CustomEvent('timerSync', { 
                                 detail: data.timerData 
                             }));
+                            break;
+                        case 'session_reset':
+                            // Clear session log and readings
+                            this.sessionLog = [];
+                            this.readings = [];
+                            this.maxDecibel = 0;
+
+                            // Dispatch event to update the UI
+                            window.dispatchEvent(new CustomEvent('sessionReset'));
                             break;
                         default:
                             console.warn('Unhandled message type:', data.type);

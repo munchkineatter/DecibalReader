@@ -321,16 +321,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     resetBtn.addEventListener('click', () => {
         meter.reset();
         stopTimer();
+
+        // Reset UI elements
+        document.getElementById('currentDb').textContent = '0.000';
+        document.getElementById('maxDb').textContent = '0.000';
+
         chart.data.labels = [];
         chart.data.datasets[0].data = [];
         chart.update();
-        
-        document.getElementById('currentDb').textContent = '0';
-        document.getElementById('maxDb').textContent = '0';
-        
+
         // Clear the session log display
         logEntries.innerHTML = '';
-        
+
         resetBtn.disabled = true;
         exportBtn.disabled = true;
         startBtn.disabled = false;
@@ -477,4 +479,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.dispatchEvent(new CustomEvent('sessionLogged', {
         detail: { ...session, source: 'server' }
     }));
+
+    window.addEventListener('sessionReset', () => {
+        // Clear the session log display
+        logEntries.innerHTML = '';
+
+        // Reset max and current decibel displays
+        document.getElementById('currentDb').textContent = '0.000';
+        document.getElementById('maxDb').textContent = '0.000';
+
+        // Clear chart data
+        if (chart) {
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
+        }
+
+        // Reset timer display
+        stopTimer();
+        timerDisplay.classList.add('hidden');
+
+        // Update buttons' state
+        resetBtn.disabled = true;
+        exportBtn.disabled = true;
+
+        // If the user is a viewer, disable start button
+        if (meter.role === 'viewer') {
+            startBtn.disabled = true;
+        }
+    });
 });
