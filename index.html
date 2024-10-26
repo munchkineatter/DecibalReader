@@ -7,15 +7,32 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="background-wrapper"></div>
     <div class="container">
         <header>
-            <h1>Decibel Monitor</h1>
+            <img src="https://i.imgur.com/RaO088v.png" alt="Decibel Monitor" class="header-logo">
             <div class="controls">
-                <button id="startBtn" class="btn">Start</button>
                 <button id="pauseBtn" class="btn" disabled>Pause</button>
                 <button id="stopBtn" class="btn" disabled>Stop</button>
                 <button id="resetBtn" class="btn" disabled>Reset</button>
-                <button id="recordBtn" class="btn record-btn" disabled>Record Session</button>
+                <button id="recordBtn" class="btn record-btn">Start New Session</button>
+                <!-- Add timer controls -->
+                <div class="timer-controls">
+                    <select id="timerDuration">
+                        <option value="">No Timer</option>
+                        <option value="5">5 seconds</option>
+                        <option value="10">10 seconds</option>
+                        <option value="15">15 seconds</option>
+                        <option value="20">20 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="300">5 minutes</option>
+                        <option value="600">10 minutes</option>
+                        <option value="1800">30 minutes</option>
+                        <option value="3600">1 hour</option>
+                    </select>
+                    <span id="timerDisplay" class="hidden">00:00</span>
+                </div>
             </div>
         </header>
 
@@ -41,16 +58,6 @@
                         </select>
                     </div>
                 </div>
-
-                <div class="session-summary" id="sessionSummary">
-                    <h2>Session Summary</h2>
-                    <div class="summary-stats">
-                        <div>Peak: <span id="peakDb">0</span> dB</div>
-                        <div>Average: <span id="avgDb">0</span> dB</div>
-                        <div>Minimum: <span id="minDb">0</span> dB</div>
-                    </div>
-                    <button id="exportBtn" class="btn" disabled>Export Data</button>
-                </div>
             </div>
 
             <div class="session-log">
@@ -58,6 +65,7 @@
                 <div class="log-entries" id="logEntries">
                     <!-- Session entries will be added here dynamically -->
                 </div>
+                <button id="exportBtn" class="btn export-btn" disabled>Export All Sessions</button>
             </div>
 
             <!-- Add this after the header -->

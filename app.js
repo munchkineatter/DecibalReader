@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let animationFrame = null;
 
     // DOM elements
-    const startBtn = document.getElementById('startBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const stopBtn = document.getElementById('stopBtn');
     const resetBtn = document.getElementById('resetBtn');
@@ -18,7 +17,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const copySessionId = document.getElementById('copySessionId');
     const sessionIdInput = document.getElementById('sessionIdInput');
     const joinSession = document.getElementById('joinSession');
+    const timerDuration = document.getElementById('timerDuration');
+    const timerDisplay = document.getElementById('timerDisplay');
     
+    let timerInterval = null;
+    let remainingTime = 0;
+
     // Initialize Chart.js
     function initializeChart() {
         const ctx = document.getElementById('decibelGraph').getContext('2d');
@@ -42,25 +46,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                         beginAtZero: true,
                         max: 100,
                         grid: {
-                            color: 'rgba(247, 245, 242, 0.1)' // Light colored grid
+                            color: 'rgba(247, 245, 242, 0.1)'
                         },
                         ticks: {
-                            color: '#F7F5F2' // White text
+                            color: '#F7F5F2'
                         }
                     },
                     x: {
-                        grid: {
-                            color: 'rgba(247, 245, 242, 0.1)' // Light colored grid
-                        },
-                        ticks: {
-                            color: '#F7F5F2' // White text
-                        }
+                        display: false // This hides the x-axis labels
                     }
                 },
                 plugins: {
                     legend: {
                         labels: {
-                            color: '#F7F5F2' // White text for legend
+                            color: '#F7F5F2'
                         }
                     }
                 },
@@ -75,15 +74,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!meter.isRecording) return;
 
         const decibel = meter.getCurrentDecibel();
-        document.getElementById('currentDb').textContent = decibel;
-        document.getElementById('maxDb').textContent = meter.maxDecibel;
+        // Format the display values
+        document.getElementById('currentDb').textContent = parseFloat(decibel).toFixed(3);
+        document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
 
         // Update chart
         const timeRangeValue = parseInt(timeRange.value);
         const now = new Date();
         
         chart.data.labels.push(now.toLocaleTimeString());
-        chart.data.datasets[0].data.push(decibel);
+        chart.data.datasets[0].data.push(parseFloat(decibel));
 
         // Remove old data points
         while (chart.data.labels.length > timeRangeValue * 2) {
@@ -108,12 +108,68 @@ document.addEventListener('DOMContentLoaded', async () => {
             <h3>Session #${session.sessionNumber} - ${session.timestamp.toLocaleTimeString()}</h3>
             <div class="log-entry-stats">
                 <div>Duration: ${formatDuration(session.duration)}s</div>
-                <div>Peak: ${session.max} dB</div>
-                <div>Average: ${session.avg} dB</div>
-                <div>Minimum: ${session.min} dB</div>
+                <div>Peak: ${parseFloat(session.max).toFixed(3)} dB</div>
+                <div>Average: ${parseFloat(session.avg).toFixed(3)} dB</div>
+                <div>Minimum: ${parseFloat(session.min).toFixed(3)} dB</div>
             </div>
         `;
         logEntries.insertBefore(entryDiv, logEntries.firstChild);
+    }
+
+    // Add this function to format time for the timer display
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    // Add this function to handle the timer
+    function startTimer(duration) {
+        if (!duration) return;
+        
+        remainingTime = duration;
+        timerDisplay.classList.remove('hidden');
+        timerDisplay.textContent = formatTime(remainingTime);
+        
+        timerInterval = setInterval(() => {
+            remainingTime--;
+            timerDisplay.textContent = formatTime(remainingTime);
+            
+            if (remainingTime <= 0) {
+                clearInterval(timerInterval);
+                // Stop recording
+                meter.stop();
+                cancelAnimationFrame(animationFrame);
+                
+                // Update session summary
+                const sessionData = meter.getSessionData();
+                document.getElementById('peakDb').textContent = sessionData.max;
+                document.getElementById('avgDb').textContent = sessionData.avg;
+                document.getElementById('minDb').textContent = sessionData.min;
+                
+                // Record the session
+                const session = meter.recordSession();
+                addSessionToLog(session);
+                
+                // Update UI
+                pauseBtn.disabled = true;
+                stopBtn.disabled = true;
+                resetBtn.disabled = false;
+                exportBtn.disabled = false;
+                recordBtn.disabled = true;
+                timerDisplay.classList.add('hidden');
+            }
+        }, 1000);
+    }
+
+    // Add this function to stop the timer
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        timerDisplay.classList.add('hidden');
+        remainingTime = 0;
     }
 
     async function startRecording() {
@@ -126,14 +182,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            // Connect as recorder
             const sessionId = await meter.connectWebSocket('recorder');
             sessionIdDisplay.textContent = sessionId;
             recorderControls.classList.remove('hidden');
             viewerControls.classList.add('hidden');
 
             meter.start();
-            startBtn.disabled = true;
             pauseBtn.disabled = false;
             stopBtn.disabled = false;
             resetBtn.disabled = true;
@@ -143,7 +197,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             updateDisplay();
-            recordBtn.disabled = false;
+            recordBtn.textContent = 'Record Session';
+
+            // Start timer if duration is selected
+            const duration = parseInt(timerDuration.value);
+            if (duration) {
+                startTimer(duration);
+            }
         } catch (error) {
             alert('Failed to create recording session: ' + error.message);
         }
@@ -166,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Listen for decibel updates
             window.addEventListener('decibelUpdate', (event) => {
+                if (!meter.isRecording) return;
                 const reading = event.detail;
                 document.getElementById('currentDb').textContent = reading.value;
                 document.getElementById('maxDb').textContent = meter.maxDecibel;
@@ -193,7 +254,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Event Listeners
-    startBtn.addEventListener('click', startRecording);
     joinSession.addEventListener('click', joinViewerSession);
 
     copySessionId.addEventListener('click', () => {
@@ -207,61 +267,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             meter.pause();
             pauseBtn.textContent = 'Resume';
             cancelAnimationFrame(animationFrame);
+            if (timerInterval) clearInterval(timerInterval); // Pause the timer
         } else {
             meter.resume();
             pauseBtn.textContent = 'Pause';
             updateDisplay();
+            if (remainingTime > 0) startTimer(remainingTime); // Resume the timer
         }
     });
 
     stopBtn.addEventListener('click', () => {
         meter.stop();
         cancelAnimationFrame(animationFrame);
+        stopTimer();
         
-        const sessionData = meter.getSessionData();
-        document.getElementById('peakDb').textContent = sessionData.max;
-        document.getElementById('avgDb').textContent = sessionData.avg;
-        document.getElementById('minDb').textContent = sessionData.min;
-        
-        startBtn.disabled = false;
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
         resetBtn.disabled = false;
         exportBtn.disabled = false;
-        recordBtn.disabled = true;
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Start New Session';
     });
 
     resetBtn.addEventListener('click', () => {
         meter.reset();
+        stopTimer();
         chart.data.labels = [];
         chart.data.datasets[0].data = [];
         chart.update();
         
         document.getElementById('currentDb').textContent = '0';
         document.getElementById('maxDb').textContent = '0';
-        document.getElementById('peakDb').textContent = '0';
-        document.getElementById('avgDb').textContent = '0';
-        document.getElementById('minDb').textContent = '0';
         
         resetBtn.disabled = true;
         exportBtn.disabled = true;
-        recordBtn.disabled = true;
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Start New Session';
     });
 
     exportBtn.addEventListener('click', () => {
         meter.exportToCsv();
     });
 
+    // Optimize timeRange event listener
     timeRange.addEventListener('change', () => {
-        if (chart) {
-            chart.data.labels = [];
-            chart.data.datasets[0].data = [];
+        if (chart && meter.isRecording) {
             chart.update();
         }
     });
 
     recordBtn.addEventListener('click', () => {
-        const session = meter.recordSession();
-        addSessionToLog(session);
+        if (!meter.isRecording) {
+            startRecording();
+        } else {
+            const session = meter.recordSession();
+            addSessionToLog(session);
+        }
     });
 });

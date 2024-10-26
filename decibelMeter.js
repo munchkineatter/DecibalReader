@@ -8,7 +8,6 @@ class DecibelMeter {
         this.readings = [];
         this.maxDecibel = 0;
         this.sessionLog = [];
-        this.sessionCounter = 1; // Add session counter
         this.ws = null;
         this.sessionId = null;
         this.role = null;
@@ -54,7 +53,6 @@ class DecibelMeter {
     reset() {
         this.readings = [];
         this.maxDecibel = 0;
-        this.sessionCounter = 1; // Reset session counter
     }
 
     async connectWebSocket(role, sessionId = null) {
@@ -126,9 +124,10 @@ class DecibelMeter {
 
         this.analyzer.getByteFrequencyData(this.dataArray);
         const average = this.dataArray.reduce((acc, val) => acc + val, 0) / this.dataArray.length;
-        const decibel = Math.round((average / 255) * 100);
+        // Convert to number immediately
+        const decibel = parseFloat(((average / 255) * 100).toFixed(3));
         
-        if (decibel > this.maxDecibel) {
+        if (decibel > parseFloat(this.maxDecibel)) {
             this.maxDecibel = decibel;
         }
 
@@ -153,7 +152,8 @@ class DecibelMeter {
 
     handleDecibelUpdate(reading) {
         this.readings.push(reading);
-        if (reading.value > this.maxDecibel) {
+        // Convert to number for comparison
+        if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
         // Trigger custom event for UI update
@@ -168,23 +168,28 @@ class DecibelMeter {
     getSessionData() {
         return {
             readings: this.readings,
-            max: this.maxDecibel,
-            avg: Math.round(this.readings.reduce((acc, reading) => acc + reading.value, 0) / this.readings.length),
-            min: Math.min(...this.readings.map(reading => reading.value))
+            max: parseFloat(this.maxDecibel).toFixed(3),
+            avg: (this.readings.reduce((acc, reading) => acc + reading.value, 0) / this.readings.length).toFixed(3),
+            min: Math.min(...this.readings.map(reading => reading.value)).toFixed(3)
         };
     }
 
     exportToCsv() {
-        const csvContent = this.readings.map(reading => 
-            `${reading.time.toISOString()},${reading.value}`
-        ).join('\n');
+        // Create CSV header
+        let csvContent = 'Session Number,Timestamp,Duration,Peak (dB),Average (dB),Minimum (dB)\n';
         
-        const blob = new Blob([`Timestamp,Decibel\n${csvContent}`], { type: 'text/csv' });
+        // Add data for each session
+        this.sessionLog.forEach(session => {
+            csvContent += `${session.sessionNumber},${session.timestamp.toISOString()},` +
+                `${session.duration},${session.max},${session.avg},${session.min}\n`;
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `decibel-readings-${new Date().toISOString()}.csv`;
+        a.download = `decibel-sessions-${new Date().toISOString()}.csv`;
         a.click();
         
         window.URL.revokeObjectURL(url);
@@ -193,7 +198,7 @@ class DecibelMeter {
     recordSession() {
         const sessionData = this.getSessionData();
         const session = {
-            sessionNumber: this.sessionCounter++, // Add session number
+            sessionNumber: this.sessionLog.length + 1,
             id: Date.now(),
             timestamp: new Date(),
             duration: this.readings.length > 0 ? 
@@ -204,10 +209,9 @@ class DecibelMeter {
         };
         
         this.sessionLog.push(session);
+        this.readings = [];
+        this.maxDecibel = 0;
+        
         return session;
-    }
-
-    getSessionLog() {
-        return this.sessionLog;
     }
 }

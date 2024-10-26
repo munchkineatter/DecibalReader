@@ -5,7 +5,7 @@
     --light-color: #F7F5F2;      /* Off-white */
     --text-light: #F7F5F2;
     --text-dark: #212322;
-    --card-bg: #2c2e2d;         /* Slightly lighter than dark-color for cards */
+    --card-bg: rgba(44, 46, 45, 0.85);  /* Made card background semi-transparent */
 }
 
 * {
@@ -16,10 +16,26 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: var(--dark-color);
     line-height: 1.6;
     color: var(--text-light);
     min-height: 100vh;
+    background-image: url('https://i.imgur.com/t5if7En.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Add an overlay to improve text readability */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(33, 35, 34, 0.3); /* Semi-transparent dark overlay */
+    z-index: -1;
 }
 
 .container {
@@ -32,6 +48,12 @@ header {
     text-align: center;
     margin-bottom: 2rem;
     color: var(--light-color);
+}
+
+.header-logo {
+    max-width: 400px;  /* Adjust this value to control the logo size */
+    height: auto;
+    margin-bottom: 1.5rem;
 }
 
 .controls {
@@ -80,12 +102,15 @@ header {
     color: var(--primary-color);
 }
 
-.graph-container {
+/* Combine common backdrop-filter properties */
+.graph-container,
+.session-summary,
+.session-log,
+.session-controls {
     background: var(--card-bg);
-    padding: 1rem;
+    backdrop-filter: blur(5px);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    margin: 2rem 0;
     border: 1px solid rgba(247, 245, 242, 0.1);
 }
 
@@ -95,14 +120,6 @@ header {
     border: 1px solid var(--primary-color);
     background-color: var(--card-bg);
     color: var(--text-light);
-}
-
-.session-summary {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(247, 245, 242, 0.1);
 }
 
 .session-summary h2 {
@@ -126,17 +143,6 @@ header {
 
 .monitor-section {
     min-width: 0; /* Prevents overflow in grid */
-}
-
-.session-log {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    height: fit-content;
-    max-height: 80vh;
-    overflow-y: auto;
-    border: 1px solid rgba(247, 245, 242, 0.1);
 }
 
 .session-log h2 {
@@ -197,28 +203,7 @@ canvas#decibelGraph {
     background: var(--secondary-color);
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
-    }
-    
-    .decibel-display {
-        font-size: 4.5rem;  /* Adjusted for mobile */
-    }
-
-    .unit {
-        font-size: 2.25rem;  /* Adjusted for mobile */
-    }
-    
-    .max-reading {
-        font-size: 1.5rem;  /* Adjusted for mobile */
-    }
-    
-    .controls .btn {
-        margin: 0.25rem;
-    }
-}
-
+/* Combine media queries */
 @media (max-width: 1024px) {
     .main-content {
         grid-template-columns: 1fr;
@@ -227,10 +212,31 @@ canvas#decibelGraph {
     .session-log {
         max-height: 400px;
     }
+    
+    .container {
+        padding: 1rem;
+    }
+    
+    .decibel-display {
+        font-size: 4.5rem;
+    }
+
+    .unit {
+        font-size: 2.25rem;
+    }
+    
+    .max-reading {
+        font-size: 1.5rem;
+    }
+    
+    .controls .btn {
+        margin: 0.25rem;
+    }
 }
 
 .session-controls {
     background: var(--card-bg);
+    backdrop-filter: blur(5px);
     padding: 1rem;
     border-radius: 8px;
     margin: 1rem 0;
@@ -261,4 +267,64 @@ canvas#decibelGraph {
 
 .hidden {
     display: none;
+}
+
+.timer-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+}
+
+#timerDuration {
+    padding: 5px;
+    border-radius: 4px;
+    background-color: #2c2c2c;
+    color: #F7F5F2;
+    border: 1px solid #444;
+}
+
+#timerDisplay {
+    font-family: monospace;
+    font-size: 1.2em;
+    color: #F7F5F2;
+    background-color: #2c2c2c;
+    padding: 5px 10px;
+    border-radius: 4px;
+    min-width: 70px;
+    text-align: center;
+}
+
+#timerDisplay.hidden {
+    display: none;
+}
+
+/* Update session-log styles */
+.session-log {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid rgba(247, 245, 242, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.log-entries {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.export-btn {
+    width: 100%;
+    margin: 0;
+    background-color: var(--secondary-color);
+}
+
+.export-btn:hover:not(:disabled) {
+    background-color: var(--primary-color);
 }
