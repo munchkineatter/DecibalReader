@@ -135,6 +135,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             remainingTime--;
             timerDisplay.textContent = formatTime(remainingTime);
             
+            // Send timer update to viewers
+            if (meter.role === 'recorder') {
+                meter.updateTimer({ remainingTime });
+            }
+            
             if (remainingTime <= 0) {
                 clearInterval(timerInterval);
                 // Stop recording
@@ -391,6 +396,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sessionControlsElement = document.querySelector('.session-controls');
         if (sessionControlsElement) {
             sessionControlsElement.remove();
+        }
+    });
+
+    // Add timer sync event listener
+    window.addEventListener('timerSync', (event) => {
+        const timerData = event.detail;
+        if (timerData) {
+            remainingTime = timerData.remainingTime;
+            if (remainingTime > 0) {
+                timerDisplay.classList.remove('hidden');
+                timerDisplay.textContent = formatTime(remainingTime);
+                // Only start the timer if we're not already counting
+                if (!timerInterval) {
+                    startTimer(remainingTime);
+                }
+            }
         }
     });
 });

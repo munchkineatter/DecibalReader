@@ -92,7 +92,13 @@ class DecibelMeter {
                             break;
                         case 'session_joined':
                             this.sessionId = sessionId;
-                            this.isRecording = data.isActive;  // Set recording state based on session state
+                            this.isRecording = data.isActive;
+                            // Handle timer data if present
+                            if (data.timerData) {
+                                window.dispatchEvent(new CustomEvent('timerSync', { 
+                                    detail: data.timerData 
+                                }));
+                            }
                             resolve(this.sessionId);
                             break;
                         case 'decibel_update':
@@ -107,6 +113,11 @@ class DecibelMeter {
                             if (this.role === 'viewer') {
                                 this.handleSessionEnded();
                             }
+                            break;
+                        case 'timer_update':
+                            window.dispatchEvent(new CustomEvent('timerSync', { 
+                                detail: data.timerData 
+                            }));
                             break;
                     }
                 };
@@ -227,5 +238,14 @@ class DecibelMeter {
         }
         
         return session;
+    }
+
+    updateTimer(timerData) {
+        if (this.ws && this.role === 'recorder') {
+            this.ws.send(JSON.stringify({
+                type: 'timer_update',
+                timerData
+            }));
+        }
     }
 }
