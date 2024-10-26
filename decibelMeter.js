@@ -56,7 +56,7 @@ class DecibelMeter {
     }
 
     async connectWebSocket(role, sessionId = null) {
-        const wsUrl = 'wss://dbserver-jigl.onrender.com';
+        const wsUrl = 'wss://dbserver-1-jchv.onrender.com';
         console.log('Connecting to WebSocket:', wsUrl);
         
         this.ws = new WebSocket(wsUrl);
