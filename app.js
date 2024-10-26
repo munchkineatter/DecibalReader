@@ -361,6 +361,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chart.update();
             }
             
+            // Make sure session ID is displayed
+            if (meter.sessionId) {
+                recorderControls.querySelector('.session-id').classList.remove('hidden');
+            }
+            
             updateDisplay();
 
             // Start timer if duration is selected

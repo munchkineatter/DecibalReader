@@ -92,12 +92,12 @@ class DecibelMeter {
                     switch(data.type) {
                         case 'session_created':
                             this.sessionId = data.sessionId;
+                            this.isRecording = false; // Initialize as not recording
                             resolve(this.sessionId);
                             break;
                         case 'session_joined':
                             this.sessionId = sessionId;
                             this.isRecording = data.isActive;
-                            // Handle timer data if present
                             if (data.timerData) {
                                 window.dispatchEvent(new CustomEvent('timerSync', { 
                                     detail: data.timerData 
@@ -106,17 +106,13 @@ class DecibelMeter {
                             resolve(this.sessionId);
                             break;
                         case 'decibel_update':
-                            if (this.role === 'viewer') {
-                                this.handleDecibelUpdate(data.data);
-                            }
+                            this.handleDecibelUpdate(data.data);
                             break;
                         case 'error':
                             reject(new Error(data.message));
                             break;
                         case 'session_ended':
-                            if (this.role === 'viewer') {
-                                this.handleSessionEnded();
-                            }
+                            this.handleSessionEnded();
                             break;
                         case 'timer_update':
                             window.dispatchEvent(new CustomEvent('timerSync', { 
@@ -177,12 +173,12 @@ class DecibelMeter {
     }
 
     handleDecibelUpdate(reading) {
-        if (!this.isRecording && this.role === 'viewer') return;
-        
+        // Remove the role check since we want to handle updates for all viewers
         this.readings.push(reading);
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
+        // Always dispatch the event for UI updates
         window.dispatchEvent(new CustomEvent('decibelUpdate', { detail: reading }));
     }
 
