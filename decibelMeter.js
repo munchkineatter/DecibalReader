@@ -102,12 +102,14 @@ class DecibelMeter {
                             // Load existing session log
                             if (data.sessionLog) {
                                 this.sessionLog = data.sessionLog;
-                                // Update UI for each session
-                                data.sessionLog.forEach(session => {
-                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                        detail: session
-                                    }));
-                                });
+                                // Update UI for each session only for viewer
+                                if (this.role === 'viewer') {
+                                    data.sessionLog.forEach(session => {
+                                        window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                            detail: session
+                                        }));
+                                    });
+                                }
                             }
                             if (data.timerData) {
                                 window.dispatchEvent(new CustomEvent('timerSync', { 
@@ -132,13 +134,10 @@ class DecibelMeter {
                             break;
                         case 'session_recorded':
                             if (this.role === 'viewer') {
-                                // Only add if not already in log
-                                if (!this.sessionLog.some(s => s.id === data.session.id)) {
-                                    this.sessionLog.push(data.session);
-                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                        detail: data.session
-                                    }));
-                                }
+                                this.sessionLog.push(data.session);
+                                window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                    detail: data.session
+                                }));
                             }
                             break;
                     }
@@ -264,24 +263,19 @@ class DecibelMeter {
             min: sessionData.min
         };
         
-        // Check for duplicates before adding to local session log
-        const isDuplicate = this.sessionLog.some(s => 
-            s.sessionNumber === session.sessionNumber || 
-            Math.abs(s.timestamp - session.timestamp) < 1000 // Within 1 second
-        );
-        
-        if (!isDuplicate) {
+        // Add to local session log only if we're the recorder
+        if (this.role === 'recorder') {
             this.sessionLog.push(session);
             
-            // Send session to server only if we're the recorder
-            if (this.role === 'recorder' && this.ws) {
+            // Send session to server
+            if (this.ws) {
                 this.ws.send(JSON.stringify({
                     type: 'session_recorded',
                     session: session
                 }));
             }
             
-            // Always dispatch the event locally
+            // Dispatch event locally only for recorder
             window.dispatchEvent(new CustomEvent('sessionLogged', {
                 detail: session
             }));
