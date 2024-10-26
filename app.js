@@ -308,10 +308,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelAnimationFrame(animationFrame);
         stopTimer();
         
-        // Record the session
+        // Always record the session when stopping
         const session = meter.recordSession();
-        // Remove the following line to prevent duplicate log entries
-        // addSessionToLog(session);
         
         pauseBtn.disabled = true;
         stopBtn.disabled = true;

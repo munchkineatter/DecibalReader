@@ -70,7 +70,8 @@ class DecibelMeter {
             console.log('[DecibelMeter] Sending session_reset to server');
             this.ws.send(JSON.stringify({
                 type: 'session_reset',
-                sessionId: this.sessionId
+                sessionId: this.sessionId,
+                clearLog: true  // Add this flag to indicate we want to clear logs
             }));
         }
     }
@@ -327,6 +328,7 @@ class DecibelMeter {
     }
 
     recordSession() {
+        console.log('[DecibelMeter] Recording session');
         const sessionData = this.getSessionData();
         const session = {
             sessionNumber: this.sessionLog.length + 1,
@@ -339,18 +341,13 @@ class DecibelMeter {
         };
         
         // Only handle session recording if we're the recorder
-        if (this.role === 'recorder') {
-            // Let the server handle the session log management
-            if (this.ws) {
-                this.ws.send(JSON.stringify({
-                    type: 'session_recorded',
-                    session: session
-                }));
-            }
+        if (this.role === 'recorder' && this.ws) {
+            console.log('[DecibelMeter] Sending session_recorded to server');
+            this.ws.send(JSON.stringify({
+                type: 'session_recorded',
+                session: session
+            }));
         }
-        
-        // Reset readings but keep maxDecibel until new recording starts
-        this.readings = [];
         
         return session;
     }
