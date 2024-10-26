@@ -35,7 +35,15 @@ class DecibelMeter {
     start() {
         this.isRecording = true;
         this.readings = [];
-        this.maxDecibel = 0;
+        this.maxDecibel = 0; // Only reset maxDecibel when starting new recording
+        // Make sure analyzer is ready
+        if (!this.analyzer && this.audioContext) {
+            const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+            this.analyzer = this.audioContext.createAnalyser();
+            this.analyzer.fftSize = 2048;
+            source.connect(this.analyzer);
+            this.dataArray = new Uint8Array(this.analyzer.frequencyBinCount);
+        }
     }
 
     pause() {
@@ -48,120 +56,201 @@ class DecibelMeter {
 
     stop() {
         this.isRecording = false;
+        // Don't disconnect or reset analyzer
     }
 
     reset() {
         this.readings = [];
         this.maxDecibel = 0;
+        this.sessionLog = []; // Clear the session log
+        // Don't reset the analyzer or connection
     }
 
     async connectWebSocket(role, sessionId = null) {
         const wsUrl = 'wss://dbserver-jigl.onrender.com';
-        console.log('Connecting to WebSocket:', wsUrl);
         
-        this.ws = new WebSocket(wsUrl);
-        this.role = role;
+        try {
+            this.ws = new WebSocket(wsUrl);
+            this.role = role;
 
-        return new Promise((resolve, reject) => {
-            this.ws.onopen = () => {
-                console.log('WebSocket connected!');
-                if (role === 'recorder') {
-                    console.log('Sending create_session request');
-                    this.ws.send(JSON.stringify({
-                        type: 'create_session'
-                    }));
-                } else {
-                    console.log('Sending join_session request:', sessionId);
-                    this.ws.send(JSON.stringify({
-                        type: 'join_session',
-                        sessionId
-                    }));
-                }
-            };
+            return new Promise((resolve, reject) => {
+                this.ws.onopen = () => {
+                    if (role === 'recorder') {
+                        this.ws.send(JSON.stringify({
+                            type: 'create_session'
+                        }));
+                    } else if (role === 'viewer') {
+                        this.ws.send(JSON.stringify({
+                            type: 'join_session',
+                            sessionId: sessionId
+                        }));
+                    }
+                };
 
-            this.ws.onmessage = (event) => {
-                console.log('Received message:', event.data);
-                const data = JSON.parse(event.data);
-                
-                switch(data.type) {
-                    case 'session_created':
-                        this.sessionId = data.sessionId;
-                        resolve(this.sessionId);
-                        break;
-                    case 'session_joined':
-                        this.sessionId = data.sessionId;
-                        resolve(this.sessionId);
-                        break;
-                    case 'decibel_update':
-                        if (this.role === 'viewer') {
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    switch(data.type) {
+                        case 'session_created':
+                            this.sessionId = data.sessionId;
+                            // Remove the following line to prevent automatic recording
+                            // this.isRecording = true;
+
+                            // Clear existing session log
+                            this.sessionLog = [];
+
+                            if (data.timerData) {
+                                window.dispatchEvent(new CustomEvent('timerSync', { 
+                                    detail: data.timerData 
+                                }));
+                            }
+
+                            // Resolve the promise with sessionId
+                            resolve(this.sessionId);
+                            break;
+
+                        case 'session_joined':
+                            this.sessionId = sessionId;
+                            this.isRecording = data.isActive;
+                            
+                            // Clear existing session log
+                            this.sessionLog = [];
+                            
+                            // Load unique sessions from server
+                            if (data.sessionLog && Array.isArray(data.sessionLog)) {
+                                // Create a Map to ensure uniqueness by ID
+                                const uniqueSessions = new Map();
+                                data.sessionLog.forEach(session => {
+                                    if (!uniqueSessions.has(session.id)) {
+                                        uniqueSessions.set(session.id, session);
+                                    }
+                                });
+                                
+                                // Convert Map back to array and sort by timestamp
+                                this.sessionLog = Array.from(uniqueSessions.values())
+                                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                
+                                // Update UI for each unique session
+                                if (this.role === 'viewer') {
+                                    this.sessionLog.forEach(session => {
+                                        window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                            detail: session
+                                        }));
+                                    });
+                                }
+                            }
+                            
+                            if (data.timerData) {
+                                window.dispatchEvent(new CustomEvent('timerSync', { 
+                                    detail: data.timerData 
+                                }));
+                            }
+                            resolve(this.sessionId);
+                            break;
+                        case 'session_recorded':
+                            // Only add if not already in the log
+                            const sessionExists = this.sessionLog.some(s => s.id === data.session.id);
+                            if (!sessionExists) {
+                                this.sessionLog.push(data.session);
+                                window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                    detail: data.session
+                                }));
+                            }
+                            break;
+                        case 'decibel_update':
                             this.handleDecibelUpdate(data.data);
-                        }
-                        break;
-                    case 'error':
-                        reject(new Error(data.message));
-                        break;
-                    case 'session_ended':
-                        if (this.role === 'viewer') {
+                            break;
+                        case 'error':
+                            reject(new Error(data.message));
+                            break;
+                        case 'session_ended':
                             this.handleSessionEnded();
-                        }
-                        break;
-                }
-            };
+                            break;
+                        case 'timer_update':
+                            window.dispatchEvent(new CustomEvent('timerSync', { 
+                                detail: data.timerData 
+                            }));
+                            break;
+                        default:
+                            console.warn('Unhandled message type:', data.type);
+                    }
+                };
 
-            this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                reject(error);
-            };
+                this.ws.onerror = (error) => {
+                    reject(new Error('WebSocket connection failed'));
+                };
 
-            this.ws.onclose = () => {
-                console.log('WebSocket connection closed');
-            };
-        });
+                this.ws.onclose = () => {
+                    if (this.role === 'viewer') {
+                        this.handleSessionEnded();
+                    }
+                };
+            });
+        } catch (error) {
+            throw new Error('Failed to connect to WebSocket server');
+        }
     }
 
     getCurrentDecibel() {
         if (!this.analyzer || !this.isRecording) return 0;
 
-        this.analyzer.getByteFrequencyData(this.dataArray);
-        const average = this.dataArray.reduce((acc, val) => acc + val, 0) / this.dataArray.length;
-        // Convert to number immediately
-        const decibel = parseFloat(((average / 255) * 100).toFixed(3));
-        
-        if (decibel > parseFloat(this.maxDecibel)) {
-            this.maxDecibel = decibel;
-        }
-
-        if (this.isRecording) {
-            const reading = {
-                time: new Date(),
-                value: decibel
-            };
-            this.readings.push(reading);
-
-            // Send data if we're the recorder
-            if (this.role === 'recorder' && this.ws) {
-                this.ws.send(JSON.stringify({
-                    type: 'decibel_data',
-                    data: reading
-                }));
+        try {
+            this.analyzer.getByteFrequencyData(this.dataArray);
+            const average = this.dataArray.reduce((acc, val) => acc + val, 0) / this.dataArray.length;
+            const decibel = parseFloat(((average / 255) * 100).toFixed(3));
+            
+            if (decibel > parseFloat(this.maxDecibel)) {
+                this.maxDecibel = decibel;
             }
-        }
 
-        return decibel;
+            if (this.isRecording) {
+                const reading = {
+                    time: new Date(),
+                    value: decibel
+                };
+                this.readings.push(reading);
+
+                // Send data if we're the recorder
+                if (this.role === 'recorder' && this.ws) {
+                    this.ws.send(JSON.stringify({
+                        type: 'decibel_data',
+                        data: reading
+                    }));
+                }
+            }
+
+            return decibel;
+        } catch (error) {
+            console.error('Error getting decibel data:', error);
+            return 0;
+        }
     }
 
     handleDecibelUpdate(reading) {
+        // Add timestamp check to prevent duplicate readings
+        const lastReading = this.readings[this.readings.length - 1];
+        if (lastReading && 
+            new Date(reading.time).getTime() === new Date(lastReading.time).getTime()) {
+            return;
+        }
+
         this.readings.push(reading);
-        // Convert to number for comparison
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
-        // Trigger custom event for UI update
-        window.dispatchEvent(new CustomEvent('decibelUpdate', { detail: reading }));
+        window.dispatchEvent(new CustomEvent('decibelUpdate', { 
+            detail: { 
+                ...reading,
+                maxDecibel: this.maxDecibel
+            }
+        }));
     }
 
     handleSessionEnded() {
         this.isRecording = false;
+        if (this.ws) {
+            this.ws.close();
+        }
         window.dispatchEvent(new CustomEvent('sessionEnded'));
     }
 
@@ -175,16 +264,21 @@ class DecibelMeter {
     }
 
     exportToCsv() {
-        const csvContent = this.readings.map(reading => 
-            `${reading.time.toISOString()},${reading.value}`
-        ).join('\n');
+        // Create CSV header
+        let csvContent = 'Session Number,Timestamp,Duration,Peak (dB),Average (dB),Minimum (dB)\n';
         
-        const blob = new Blob([`Timestamp,Decibel\n${csvContent}`], { type: 'text/csv' });
+        // Add data for each session
+        this.sessionLog.forEach(session => {
+            csvContent += `${session.sessionNumber},${session.timestamp.toISOString()},` +
+                `${session.duration},${session.max},${session.avg},${session.min}\n`;
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `decibel-readings-${new Date().toISOString()}.csv`;
+        a.download = `decibel-sessions-${new Date().toISOString()}.csv`;
         a.click();
         
         window.URL.revokeObjectURL(url);
@@ -196,17 +290,57 @@ class DecibelMeter {
             sessionNumber: this.sessionLog.length + 1,
             id: Date.now(),
             timestamp: new Date(),
-            duration: this.readings.length > 0 ? 
-                (this.readings[this.readings.length - 1].time - this.readings[0].time) / 1000 : 0,
+            duration: this.calculateDuration(),
             max: sessionData.max,
             avg: sessionData.avg,
             min: sessionData.min
         };
         
-        this.sessionLog.push(session);
+        // Only handle session recording if we're the recorder
+        if (this.role === 'recorder') {
+            // Let the server handle the session log management
+            if (this.ws) {
+                this.ws.send(JSON.stringify({
+                    type: 'session_recorded',
+                    session: session
+                }));
+            }
+        }
+        
+        // Reset readings but keep maxDecibel until new recording starts
         this.readings = [];
-        this.maxDecibel = 0;
         
         return session;
+    }
+
+    updateTimer(timerData) {
+        if (this.ws && this.role === 'recorder') {
+            this.ws.send(JSON.stringify({
+                type: 'timer_update',
+                timerData
+            }));
+        }
+    }
+
+    disconnectSession() {
+        if (this.ws) {
+            // Send disconnect message to server
+            this.ws.send(JSON.stringify({
+                type: 'disconnect_session'
+            }));
+            this.ws.close();
+            this.ws = null;
+            this.sessionId = null;
+            this.role = null;
+            this.isRecording = false;
+        }
+    }
+
+    // Add new method to calculate duration
+    calculateDuration() {
+        if (this.readings.length < 2) return 0;
+        const start = new Date(this.readings[0].time).getTime();
+        const end = new Date(this.readings[this.readings.length - 1].time).getTime();
+        return (end - start) / 1000; // Duration in seconds
     }
 }
