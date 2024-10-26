@@ -91,32 +91,53 @@ class DecibelMeter {
                     const data = JSON.parse(event.data);
                     
                     switch(data.type) {
-                        case 'session_created':
-                            this.sessionId = data.sessionId;
-                            this.isRecording = false; // Initialize as not recording
-                            resolve(this.sessionId);
-                            break;
                         case 'session_joined':
                             this.sessionId = sessionId;
                             this.isRecording = data.isActive;
-                            // Load existing session log
-                            if (data.sessionLog) {
-                                this.sessionLog = data.sessionLog;
-                                // Only update UI for existing sessions if we're a viewer
+                            
+                            // Clear existing session log
+                            this.sessionLog = [];
+                            
+                            // Load unique sessions from server
+                            if (data.sessionLog && Array.isArray(data.sessionLog)) {
+                                // Create a Map to ensure uniqueness by ID
+                                const uniqueSessions = new Map();
+                                data.sessionLog.forEach(session => {
+                                    if (!uniqueSessions.has(session.id)) {
+                                        uniqueSessions.set(session.id, session);
+                                    }
+                                });
+                                
+                                // Convert Map back to array and sort by timestamp
+                                this.sessionLog = Array.from(uniqueSessions.values())
+                                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                                
+                                // Update UI for each unique session
                                 if (this.role === 'viewer') {
-                                    data.sessionLog.forEach(session => {
+                                    this.sessionLog.forEach(session => {
                                         window.dispatchEvent(new CustomEvent('sessionLogged', {
                                             detail: session
                                         }));
                                     });
                                 }
                             }
+                            
                             if (data.timerData) {
                                 window.dispatchEvent(new CustomEvent('timerSync', { 
                                     detail: data.timerData 
                                 }));
                             }
                             resolve(this.sessionId);
+                            break;
+                        case 'session_recorded':
+                            // Only add if not already in the log
+                            const sessionExists = this.sessionLog.some(s => s.id === data.session.id);
+                            if (!sessionExists) {
+                                this.sessionLog.push(data.session);
+                                window.dispatchEvent(new CustomEvent('sessionLogged', {
+                                    detail: data.session
+                                }));
+                            }
                             break;
                         case 'decibel_update':
                             this.handleDecibelUpdate(data.data);
@@ -131,18 +152,6 @@ class DecibelMeter {
                             window.dispatchEvent(new CustomEvent('timerSync', { 
                                 detail: data.timerData 
                             }));
-                            break;
-                        case 'session_recorded':
-                            // Handle session recording for both recorder and viewer
-                            const exists = this.sessionLog.some(s => 
-                                Math.abs(new Date(s.timestamp) - new Date(data.session.timestamp)) < 1000
-                            );
-                            if (!exists) {
-                                this.sessionLog.push(data.session);
-                                window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                    detail: data.session
-                                }));
-                            }
                             break;
                     }
                 };
