@@ -537,16 +537,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('[Reset View] Reset view log button clicked');
         if (meter) {
             meter.resetViewLog();
-            // Clear the UI immediately
+            // Clear the UI immediately for the recorder
             logEntries.innerHTML = '';
             // Disable export button
             exportBtn.disabled = true;
         }
     });
 
-    // Add this with your other event listeners
-    window.addEventListener('viewLogReset', () => {
-        console.log('[Event] viewLogReset event received');
+    // Update the viewLogReset event listener
+    window.addEventListener('viewLogReset', (event) => {
+        console.log('[Event] viewLogReset event received', event.detail);
+        
         // Clear the session log display
         logEntries.innerHTML = '';
         
