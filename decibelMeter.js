@@ -216,12 +216,10 @@ class DecibelMeter {
                             break;
                         case 'reset_view_log':
                             console.log('[WebSocket] Received reset_view_log message');
-                            if (this.role === 'viewer') {
-                                // Clear session log
-                                this.sessionLog = [];
-                                // Dispatch event to update the UI
-                                window.dispatchEvent(new CustomEvent('viewLogReset'));
-                            }
+                            // Clear session log regardless of role
+                            this.sessionLog = [];
+                            // Dispatch event to update the UI
+                            window.dispatchEvent(new CustomEvent('viewLogReset'));
                             break;
                         default:
                             console.warn('Unhandled message type:', data.type);
@@ -394,6 +392,9 @@ class DecibelMeter {
 
     resetViewLog() {
         console.log('[DecibelMeter] Resetting view log');
+        // Clear local session log regardless of role
+        this.sessionLog = [];
+        
         if (this.role === 'recorder' && this.ws && this.ws.readyState === WebSocket.OPEN) {
             console.log('[DecibelMeter] Sending reset_view_log to server');
             this.ws.send(JSON.stringify({
@@ -401,5 +402,8 @@ class DecibelMeter {
                 sessionId: this.sessionId
             }));
         }
+        
+        // Dispatch event to update UI for both recorder and viewer
+        window.dispatchEvent(new CustomEvent('viewLogReset'));
     }
 }

@@ -542,5 +542,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('[Event] viewLogReset event received');
         // Clear the session log display
         logEntries.innerHTML = '';
+        
+        // Also clear the meter's session log
+        if (meter) {
+            meter.sessionLog = [];
+        }
+        
+        // Disable export button since there are no sessions to export
+        exportBtn.disabled = true;
     });
 });
