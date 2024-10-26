@@ -323,6 +323,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('currentDb').textContent = '0';
         document.getElementById('maxDb').textContent = '0';
         
+        // Clear the session log display
+        logEntries.innerHTML = '';
+        
         resetBtn.disabled = true;
         exportBtn.disabled = true;
         startBtn.disabled = false;
@@ -461,6 +464,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Add session logged event listener
     window.addEventListener('sessionLogged', (event) => {
         const session = event.detail;
-        addSessionToLog(session);
+        // Only add if we're the recorder or if this is a new session from the server
+        if (meter.role === 'recorder' || event.source === 'server') {
+            addSessionToLog(session);
+        }
     });
+
+    // Update handleDecibelUpdate in DecibelMeter class to include source
+    window.dispatchEvent(new CustomEvent('sessionLogged', {
+        detail: { ...session, source: 'server' }
+    }));
 });

@@ -62,6 +62,7 @@ class DecibelMeter {
     reset() {
         this.readings = [];
         this.maxDecibel = 0;
+        this.sessionLog = []; // Clear the session log
         // Don't reset the analyzer or connection
     }
 
@@ -254,8 +255,8 @@ class DecibelMeter {
         // Add to local session log
         this.sessionLog.push(session);
         
-        // Send session to server for all roles
-        if (this.ws) {
+        // Only recorder should send session_recorded message
+        if (this.role === 'recorder' && this.ws) {
             this.ws.send(JSON.stringify({
                 type: 'session_recorded',
                 session: session
