@@ -77,24 +77,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!meter.isRecording) return;
 
         const decibel = meter.getCurrentDecibel();
-        // Format the display values
-        document.getElementById('currentDb').textContent = parseFloat(decibel).toFixed(3);
-        document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
+        if (decibel !== null && decibel !== undefined) {
+            document.getElementById('currentDb').textContent = parseFloat(decibel).toFixed(3);
+            document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
 
-        // Update chart
-        const timeRangeValue = parseInt(timeRange.value);
-        const now = new Date();
-        
-        chart.data.labels.push(now.toLocaleTimeString());
-        chart.data.datasets[0].data.push(parseFloat(decibel));
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            chart.data.datasets[0].data.push(parseFloat(decibel));
 
-        // Remove old data points
-        while (chart.data.labels.length > timeRangeValue * 2) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+            while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.update();
         }
-
-        chart.update();
+        
         animationFrame = requestAnimationFrame(updateDisplay);
     }
 
@@ -328,7 +325,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    startBtn.addEventListener('click', () => {
+    // Update the startBtn event listener
+    startBtn.addEventListener('click', async () => {
+        if (!meter.audioContext) {
+            const initialized = await meter.initialize();
+            if (!initialized) {
+                alert('Failed to initialize audio. Please check your microphone permissions.');
+                return;
+            }
+        }
+
         if (!meter.isRecording) {
             meter.start();
             startBtn.disabled = true;

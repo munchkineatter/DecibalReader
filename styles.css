@@ -269,3 +269,30 @@ canvas#decibelGraph {
 .new-session-btn:hover:not(:disabled) {
     background-color: var(--primary-color);
 }
+
+/* Update timer controls styling */
+.timer-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 10px;
+    background-color: var(--card-bg);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+#timerDuration {
+    padding: 5px;
+    border-radius: 4px;
+    background-color: var(--card-bg);
+    color: var(--text-light);
+    border: 1px solid var(--primary-color);
+}
+
+#timerDisplay {
+    font-family: monospace;
+    font-size: 1.2em;
+    color: var(--text-light);
+    min-width: 70px;
+    text-align: center;
+}
