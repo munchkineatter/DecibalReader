@@ -151,11 +151,16 @@ header {
 
 .log-entries {
     margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center log entries */
 }
 
 .log-entry {
     border-bottom: 1px solid rgba(247, 245, 242, 0.1);
     padding: 1rem 0;
+    width: 100%; /* Ensure full width */
+    text-align: center; /* Center text within entries */
 }
 
 .log-entry:last-child {
@@ -168,6 +173,10 @@ header {
 }
 
 .log-entry-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.9rem;
     color: var(--text-light);
 }
@@ -295,4 +304,23 @@ canvas#decibelGraph {
     color: var(--text-light);
     min-width: 70px;
     text-align: center;
+}
+
+/* Update session log styles */
+.session-log {
+    background: var(--card-bg);
+    backdrop-filter: blur(5px);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid rgba(247, 245, 242, 0.1);
+    text-align: center; /* Center all content */
+}
+
+.export-btn {
+    width: 80%; /* Make button slightly narrower than container */
+    margin: 1rem auto 0; /* Center button and add top margin */
 }
