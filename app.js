@@ -154,7 +154,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Record the session
                 const session = meter.recordSession();
-                addSessionToLog(session);
+                // Remove the following line to prevent duplicate log entries
+                // addSessionToLog(session);
                 
                 // Update UI
                 pauseBtn.disabled = true;
@@ -306,7 +307,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Record the session
         const session = meter.recordSession();
-        addSessionToLog(session);
+        // Remove the following line to prevent duplicate log entries
+        // addSessionToLog(session);
         
         pauseBtn.disabled = true;
         stopBtn.disabled = true;

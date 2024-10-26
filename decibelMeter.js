@@ -91,6 +91,23 @@ class DecibelMeter {
                     const data = JSON.parse(event.data);
                     
                     switch(data.type) {
+                        case 'session_created':
+                            this.sessionId = data.sessionId;
+                            this.isRecording = true;
+
+                            // Clear existing session log
+                            this.sessionLog = [];
+
+                            if (data.timerData) {
+                                window.dispatchEvent(new CustomEvent('timerSync', { 
+                                    detail: data.timerData 
+                                }));
+                            }
+
+                            // Resolve the promise with sessionId
+                            resolve(this.sessionId);
+                            break;
+
                         case 'session_joined':
                             this.sessionId = sessionId;
                             this.isRecording = data.isActive;
@@ -153,6 +170,8 @@ class DecibelMeter {
                                 detail: data.timerData 
                             }));
                             break;
+                        default:
+                            console.warn('Unhandled message type:', data.type);
                     }
                 };
 
