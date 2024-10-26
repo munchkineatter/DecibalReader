@@ -56,7 +56,7 @@ class DecibelMeter {
     }
 
     async connectWebSocket(role, sessionId = null) {
-        const wsUrl = 'wss://dbserver-1-jchv.onrender.com';
+        const wsUrl = 'wss://dbserver-jigl.onrender.com';
         console.log('Connecting to WebSocket:', wsUrl);
         
         this.ws = new WebSocket(wsUrl);
@@ -80,57 +80,17 @@ class DecibelMeter {
             };
 
             this.ws.onmessage = (event) => {
+                console.log('Received message:', event.data);
                 const data = JSON.parse(event.data);
                 
                 switch(data.type) {
-                    case 'session_joined':
-                        this.sessionId = sessionId;
-                        this.isRecording = data.isActive;
-                        
-                        // Clear existing session log
-                        this.sessionLog = [];
-                        
-                        // Load unique sessions from server
-                        if (data.sessionLog && Array.isArray(data.sessionLog)) {
-                            // Create a Map to ensure uniqueness by ID
-                            const uniqueSessions = new Map();
-                            data.sessionLog.forEach(session => {
-                                if (!uniqueSessions.has(session.id)) {
-                                    uniqueSessions.set(session.id, session);
-                                }
-                            });
-                            
-                            // Convert Map back to array and sort by timestamp
-                            this.sessionLog = Array.from(uniqueSessions.values())
-                                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-                            
-                            // Update UI for each unique session
-                            if (this.role === 'viewer') {
-                                this.sessionLog.forEach(session => {
-                                    window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                        detail: session
-                                    }));
-                                });
-                            }
-                        }
-                        
-                        if (data.timerData) {
-                            window.dispatchEvent(new CustomEvent('timerSync', { 
-                                detail: data.timerData 
-                            }));
-                        }
+                    case 'session_created':
+                        this.sessionId = data.sessionId;
                         resolve(this.sessionId);
                         break;
-                        
-                    case 'session_recorded':
-                        // Only add if not already in the log
-                        const sessionExists = this.sessionLog.some(s => s.id === data.session.id);
-                        if (!sessionExists) {
-                            this.sessionLog.push(data.session);
-                            window.dispatchEvent(new CustomEvent('sessionLogged', {
-                                detail: data.session
-                            }));
-                        }
+                    case 'session_joined':
+                        this.sessionId = data.sessionId;
+                        resolve(this.sessionId);
                         break;
                     case 'decibel_update':
                         if (this.role === 'viewer') {
@@ -215,21 +175,16 @@ class DecibelMeter {
     }
 
     exportToCsv() {
-        // Create CSV header
-        let csvContent = 'Session Number,Timestamp,Duration,Peak (dB),Average (dB),Minimum (dB)\n';
+        const csvContent = this.readings.map(reading => 
+            `${reading.time.toISOString()},${reading.value}`
+        ).join('\n');
         
-        // Add data for each session
-        this.sessionLog.forEach(session => {
-            csvContent += `${session.sessionNumber},${session.timestamp.toISOString()},` +
-                `${session.duration},${session.max},${session.avg},${session.min}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const blob = new Blob([`Timestamp,Decibel\n${csvContent}`], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `decibel-sessions-${new Date().toISOString()}.csv`;
+        a.download = `decibel-readings-${new Date().toISOString()}.csv`;
         a.click();
         
         window.URL.revokeObjectURL(url);

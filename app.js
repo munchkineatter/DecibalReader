@@ -102,15 +102,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addSessionToLog(session) {
-        // Check if session already exists in the log
-        const existingEntry = document.querySelector(`[data-session-id="${session.id}"]`);
-        if (existingEntry) return;
-
         const entryDiv = document.createElement('div');
         entryDiv.className = 'log-entry';
-        entryDiv.setAttribute('data-session-id', session.id);
         entryDiv.innerHTML = `
-            <h3>Session #${session.sessionNumber} - ${new Date(session.timestamp).toLocaleTimeString()}</h3>
+            <h3>Session #${session.sessionNumber} - ${session.timestamp.toLocaleTimeString()}</h3>
             <div class="log-entry-stats">
                 <div>Duration: ${formatDuration(session.duration)}s</div>
                 <div>Peak: ${parseFloat(session.max).toFixed(3)} dB</div>
@@ -231,22 +226,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Listen for decibel updates
             window.addEventListener('decibelUpdate', (event) => {
+                if (!meter.isRecording) return;
                 const reading = event.detail;
-                document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
-                // Use the maxDecibel from the event
-                document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
+                document.getElementById('currentDb').textContent = reading.value;
+                document.getElementById('maxDb').textContent = meter.maxDecibel;
 
-                if (chart) {
-                    chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
-                    chart.data.datasets[0].data.push(reading.value);
+                chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
+                chart.data.datasets[0].data.push(reading.value);
 
-                    while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
-                        chart.data.labels.shift();
-                        chart.data.datasets[0].data.shift();
-                    }
-
-                    chart.update();
+                while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
                 }
+
+                chart.update();
             });
 
             // Listen for session end
@@ -288,6 +281,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelAnimationFrame(animationFrame);
         stopTimer();
         
+        const sessionData = meter.getSessionData();
+        document.getElementById('peakDb').textContent = sessionData.max;
+        document.getElementById('avgDb').textContent = sessionData.avg;
+        document.getElementById('minDb').textContent = sessionData.min;
+        
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
         resetBtn.disabled = false;
@@ -305,6 +303,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         document.getElementById('currentDb').textContent = '0';
         document.getElementById('maxDb').textContent = '0';
+        document.getElementById('peakDb').textContent = '0';
+        document.getElementById('avgDb').textContent = '0';
+        document.getElementById('minDb').textContent = '0';
         
         resetBtn.disabled = true;
         exportBtn.disabled = true;

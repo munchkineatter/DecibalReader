@@ -58,6 +58,16 @@
                         </select>
                     </div>
                 </div>
+
+                <div class="session-summary" id="sessionSummary">
+                    <h2>Session Summary</h2>
+                    <div class="summary-stats">
+                        <div>Peak: <span id="peakDb">0</span> dB</div>
+                        <div>Average: <span id="avgDb">0</span> dB</div>
+                        <div>Minimum: <span id="minDb">0</span> dB</div>
+                    </div>
+                    <button id="exportBtn" class="btn" disabled>Export Data</button>
+                </div>
             </div>
 
             <div class="session-log">
@@ -65,20 +75,15 @@
                 <div class="log-entries" id="logEntries">
                     <!-- Session entries will be added here dynamically -->
                 </div>
-                <button id="exportBtn" class="btn export-btn" disabled>Export All Sessions</button>
             </div>
 
             <!-- Add this after the header -->
             <div class="session-controls">
-                <div id="recorderControls">
-                    <button id="newSessionBtn" class="btn new-session-btn">Start New Session</button>
-                    <div class="session-id hidden">
-                        <h3>Share this session ID:</h3>
-                        <div class="session-id-content">
-                            <span id="sessionIdDisplay"></span>
-                            <button id="copySessionId" class="btn">Copy</button>
-                        </div>
-                        <button id="disconnectSession" class="btn disconnect-btn">Disconnect Session</button>
+                <div id="recorderControls" class="hidden">
+                    <h3>Share this session ID:</h3>
+                    <div class="session-id">
+                        <span id="sessionIdDisplay"></span>
+                        <button id="copySessionId" class="btn">Copy</button>
                     </div>
                 </div>
                 <div id="viewerControls">
