@@ -77,8 +77,11 @@
                         <button id="copySessionId" class="btn">Copy</button>
                     </div>
                 </div>
-                <div id="viewerControls">
-                    <h3>Join a session:</h3>
+                <div id="viewerControls" class="session-controls">
+                    <div class="viewer-header">
+                        <h3>Join a session:</h3>
+                        <button id="hideViewerControls" class="btn hide-btn hidden">×</button>
+                    </div>
                     <div class="session-join">
                         <input type="text" id="sessionIdInput" placeholder="Enter Session ID">
                         <button id="joinSession" class="btn">Join</button>

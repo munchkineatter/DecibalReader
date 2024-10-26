@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const joinSession = document.getElementById('joinSession');
     const timerDuration = document.getElementById('timerDuration');
     const timerDisplay = document.getElementById('timerDisplay');
+    const hideViewerControls = document.getElementById('hideViewerControls');
     
     let timerInterval = null;
     let remainingTime = 0;
@@ -185,8 +186,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sessionId = await meter.connectWebSocket('recorder');
             sessionIdDisplay.textContent = sessionId;
             recorderControls.classList.remove('hidden');
-            viewerControls.classList.add('hidden');
-
+            // Show the hide button when session starts
+            hideViewerControls.classList.remove('hidden');
+            
             meter.start();
             pauseBtn.disabled = false;
             stopBtn.disabled = false;
@@ -322,6 +324,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             const session = meter.recordSession();
             addSessionToLog(session);
+        }
+    });
+
+    hideViewerControls.addEventListener('click', () => {
+        // Remove the entire session-controls element
+        const sessionControlsElement = document.querySelector('.session-controls');
+        if (sessionControlsElement) {
+            sessionControlsElement.remove();
         }
     });
 });
