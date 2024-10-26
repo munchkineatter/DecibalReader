@@ -195,6 +195,13 @@ class DecibelMeter {
     }
 
     handleDecibelUpdate(reading) {
+        // Add timestamp check to prevent duplicate readings
+        const lastReading = this.readings[this.readings.length - 1];
+        if (lastReading && 
+            new Date(reading.time).getTime() === new Date(lastReading.time).getTime()) {
+            return;
+        }
+
         this.readings.push(reading);
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
@@ -202,7 +209,7 @@ class DecibelMeter {
         window.dispatchEvent(new CustomEvent('decibelUpdate', { 
             detail: { 
                 ...reading,
-                maxDecibel: this.maxDecibel // Include maxDecibel in the event
+                maxDecibel: this.maxDecibel
             }
         }));
     }
@@ -257,24 +264,31 @@ class DecibelMeter {
             min: sessionData.min
         };
         
-        // Add to local session log
-        this.sessionLog.push(session);
+        // Check for duplicates before adding to local session log
+        const isDuplicate = this.sessionLog.some(s => 
+            s.sessionNumber === session.sessionNumber || 
+            Math.abs(s.timestamp - session.timestamp) < 1000 // Within 1 second
+        );
         
-        // Send session to server only if we're the recorder
-        if (this.role === 'recorder' && this.ws) {
-            this.ws.send(JSON.stringify({
-                type: 'session_recorded',
-                session: session
+        if (!isDuplicate) {
+            this.sessionLog.push(session);
+            
+            // Send session to server only if we're the recorder
+            if (this.role === 'recorder' && this.ws) {
+                this.ws.send(JSON.stringify({
+                    type: 'session_recorded',
+                    session: session
+                }));
+            }
+            
+            // Always dispatch the event locally
+            window.dispatchEvent(new CustomEvent('sessionLogged', {
+                detail: session
             }));
         }
         
         // Only reset readings, keep maxDecibel until new recording starts
         this.readings = [];
-        
-        // Always dispatch the event locally
-        window.dispatchEvent(new CustomEvent('sessionLogged', {
-            detail: session
-        }));
         
         return session;
     }
