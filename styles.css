@@ -324,3 +324,14 @@ canvas#decibelGraph {
     width: 80%; /* Make button slightly narrower than container */
     margin: 1rem auto 0; /* Center button and add top margin */
 }
+
+/* Add styles for the disconnect button */
+.disconnect-btn {
+    width: 100%;
+    margin-top: 1rem;
+    background-color: #a83232; /* Red color for disconnect */
+}
+
+.disconnect-btn:hover:not(:disabled) {
+    background-color: #8a2828;
+}

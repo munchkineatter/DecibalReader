@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hideViewerControls = document.getElementById('hideViewerControls');
     const startBtn = document.getElementById('startBtn');
     const newSessionBtn = document.getElementById('newSessionBtn');
+    const disconnectSession = document.getElementById('disconnectSession');
     
     let timerInterval = null;
     let remainingTime = 0;
@@ -142,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (remainingTime <= 0) {
                 clearInterval(timerInterval);
-                // Stop recording
+                // Stop recording but don't disconnect
                 meter.stop();
                 cancelAnimationFrame(animationFrame);
                 
@@ -156,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 resetBtn.disabled = false;
                 exportBtn.disabled = false;
                 startBtn.disabled = false;
-                startBtn.textContent = 'Start New Session';
+                startBtn.textContent = 'Start';
                 timerDisplay.classList.add('hidden');
             }
         }, 1000);
@@ -411,6 +412,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!timerInterval) {
                     startTimer(remainingTime);
                 }
+            }
+        }
+    });
+
+    // Add disconnect button event listener
+    disconnectSession.addEventListener('click', () => {
+        if (meter.ws) {
+            meter.disconnectSession();
+            // Hide session controls
+            recorderControls.querySelector('.session-id').classList.add('hidden');
+            // Reset UI
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start';
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            resetBtn.disabled = true;
+            // Clear display
+            document.getElementById('currentDb').textContent = '0.000';
+            document.getElementById('maxDb').textContent = '0.000';
+            if (chart) {
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.update();
             }
         }
     });

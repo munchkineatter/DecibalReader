@@ -248,4 +248,18 @@ class DecibelMeter {
             }));
         }
     }
+
+    disconnectSession() {
+        if (this.ws) {
+            // Send disconnect message to server
+            this.ws.send(JSON.stringify({
+                type: 'disconnect_session'
+            }));
+            this.ws.close();
+            this.ws = null;
+            this.sessionId = null;
+            this.role = null;
+            this.isRecording = false;
+        }
+    }
 }
