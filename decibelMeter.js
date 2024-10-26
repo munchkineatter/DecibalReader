@@ -314,24 +314,37 @@ class DecibelMeter {
     }
 
     exportToCsv() {
-        // Create CSV header
-        let csvContent = 'Session Number,Timestamp,Duration,Peak (dB),Average (dB),Minimum (dB)\n';
-        
-        // Add data for each session
-        this.sessionLog.forEach(session => {
-            csvContent += `${session.sessionNumber},${session.timestamp.toISOString()},` +
-                `${session.duration},${session.max},${session.avg},${session.min}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `decibel-sessions-${new Date().toISOString()}.csv`;
-        a.click();
-        
-        window.URL.revokeObjectURL(url);
+        console.log('[DecibelMeter] Exporting sessions to CSV');
+        if (!this.sessionLog || this.sessionLog.length === 0) {
+            console.log('[DecibelMeter] No sessions to export');
+            return;
+        }
+
+        try {
+            // Create CSV header
+            let csvContent = 'Session Number,Timestamp,Duration,Peak (dB),Average (dB),Minimum (dB)\n';
+            
+            // Add data for each session
+            this.sessionLog.forEach(session => {
+                csvContent += `${session.sessionNumber},${new Date(session.timestamp).toISOString()},` +
+                    `${session.duration},${session.max},${session.avg},${session.min}\n`;
+            });
+            
+            // Create and download the file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `decibel-sessions-${new Date().toISOString()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('[DecibelMeter] CSV export completed');
+        } catch (error) {
+            console.error('[DecibelMeter] Error exporting CSV:', error);
+        }
     }
 
     recordSession() {
@@ -392,7 +405,7 @@ class DecibelMeter {
 
     resetViewLog() {
         console.log('[DecibelMeter] Resetting view log');
-        // Clear local session log regardless of role
+        // Clear local session log
         this.sessionLog = [];
         
         if (this.role === 'recorder' && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -403,7 +416,7 @@ class DecibelMeter {
             }));
         }
         
-        // Dispatch event to update UI for both recorder and viewer
+        // Dispatch event to update UI
         window.dispatchEvent(new CustomEvent('viewLogReset'));
     }
 }

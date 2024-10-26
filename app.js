@@ -352,7 +352,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     exportBtn.addEventListener('click', () => {
-        meter.exportToCsv();
+        console.log('[Export] Export button clicked');
+        if (meter && meter.sessionLog && meter.sessionLog.length > 0) {
+            meter.exportToCsv();
+        } else {
+            console.log('[Export] No sessions to export');
+        }
     });
 
     // Optimize timeRange event listener
@@ -530,10 +535,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     resetViewLogBtn.addEventListener('click', () => {
         console.log('[Reset View] Reset view log button clicked');
-        
-        // Send reset view message through meter
-        if (meter.role === 'recorder') {
+        if (meter) {
             meter.resetViewLog();
+            // Clear the UI immediately
+            logEntries.innerHTML = '';
+            // Disable export button
+            exportBtn.disabled = true;
         }
     });
 
@@ -543,7 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Clear the session log display
         logEntries.innerHTML = '';
         
-        // Also clear the meter's session log
+        // Clear the meter's session log
         if (meter) {
             meter.sessionLog = [];
         }
