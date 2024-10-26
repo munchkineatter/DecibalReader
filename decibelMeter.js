@@ -56,67 +56,69 @@ class DecibelMeter {
     }
 
     async connectWebSocket(role, sessionId = null) {
+        // Update WebSocket URL to use secure connection
         const wsUrl = 'wss://dbserver-jigl.onrender.com';
-        console.log('Connecting to WebSocket:', wsUrl);
         
-        this.ws = new WebSocket(wsUrl);
-        this.role = role;
+        try {
+            this.ws = new WebSocket(wsUrl);
+            this.role = role;
 
-        return new Promise((resolve, reject) => {
-            this.ws.onopen = () => {
-                console.log('WebSocket connected!');
-                if (role === 'recorder') {
-                    console.log('Sending create_session request');
-                    this.ws.send(JSON.stringify({
-                        type: 'create_session'
-                    }));
-                } else {
-                    console.log('Sending join_session request:', sessionId);
-                    this.ws.send(JSON.stringify({
-                        type: 'join_session',
-                        sessionId
-                    }));
-                }
-            };
+            return new Promise((resolve, reject) => {
+                this.ws.onopen = () => {
+                    if (role === 'recorder') {
+                        this.ws.send(JSON.stringify({
+                            type: 'create_session'
+                        }));
+                    } else if (role === 'viewer') {
+                        this.ws.send(JSON.stringify({
+                            type: 'join_session',
+                            sessionId: sessionId
+                        }));
+                    }
+                };
 
-            this.ws.onmessage = (event) => {
-                console.log('Received message:', event.data);
-                const data = JSON.parse(event.data);
-                
-                switch(data.type) {
-                    case 'session_created':
-                        this.sessionId = data.sessionId;
-                        resolve(this.sessionId);
-                        break;
-                    case 'session_joined':
-                        this.sessionId = data.sessionId;
-                        resolve(this.sessionId);
-                        break;
-                    case 'decibel_update':
-                        if (this.role === 'viewer') {
-                            this.handleDecibelUpdate(data.data);
-                        }
-                        break;
-                    case 'error':
-                        reject(new Error(data.message));
-                        break;
-                    case 'session_ended':
-                        if (this.role === 'viewer') {
-                            this.handleSessionEnded();
-                        }
-                        break;
-                }
-            };
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    switch(data.type) {
+                        case 'session_created':
+                            this.sessionId = data.sessionId;
+                            resolve(this.sessionId);
+                            break;
+                        case 'session_joined':
+                            this.sessionId = sessionId;
+                            this.isRecording = true;  // Start recording for viewer
+                            resolve(this.sessionId);
+                            break;
+                        case 'decibel_update':
+                            if (this.role === 'viewer') {
+                                this.handleDecibelUpdate(data.data);
+                            }
+                            break;
+                        case 'error':
+                            reject(new Error(data.message));
+                            break;
+                        case 'session_ended':
+                            if (this.role === 'viewer') {
+                                this.handleSessionEnded();
+                            }
+                            break;
+                    }
+                };
 
-            this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                reject(error);
-            };
+                this.ws.onerror = (error) => {
+                    reject(new Error('WebSocket connection failed'));
+                };
 
-            this.ws.onclose = () => {
-                console.log('WebSocket connection closed');
-            };
-        });
+                this.ws.onclose = () => {
+                    if (this.role === 'viewer') {
+                        this.handleSessionEnded();
+                    }
+                };
+            });
+        } catch (error) {
+            throw new Error('Failed to connect to WebSocket server');
+        }
     }
 
     getCurrentDecibel() {
@@ -151,17 +153,20 @@ class DecibelMeter {
     }
 
     handleDecibelUpdate(reading) {
+        if (!this.isRecording) return;
+        
         this.readings.push(reading);
-        // Convert to number for comparison
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
             this.maxDecibel = reading.value;
         }
-        // Trigger custom event for UI update
         window.dispatchEvent(new CustomEvent('decibelUpdate', { detail: reading }));
     }
 
     handleSessionEnded() {
         this.isRecording = false;
+        if (this.ws) {
+            this.ws.close();
+        }
         window.dispatchEvent(new CustomEvent('sessionEnded'));
     }
 

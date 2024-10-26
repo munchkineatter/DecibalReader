@@ -221,34 +221,47 @@ document.addEventListener('DOMContentLoaded', async () => {
                 initializeChart();
             }
 
-            // Listen for decibel updates
-            window.addEventListener('decibelUpdate', (event) => {
-                if (!meter.isRecording) return;
-                const reading = event.detail;
-                document.getElementById('currentDb').textContent = reading.value;
-                document.getElementById('maxDb').textContent = meter.maxDecibel;
-
-                chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
-                chart.data.datasets[0].data.push(reading.value);
-
-                while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
-                    chart.data.labels.shift();
-                    chart.data.datasets[0].data.shift();
-                }
-
-                chart.update();
-            });
-
-            // Listen for session end
-            window.addEventListener('sessionEnded', () => {
-                alert('Recording session has ended');
-                location.reload();
-            });
+            // Enable/disable appropriate buttons
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            resetBtn.disabled = true;
+            recordBtn.disabled = true;
+            
+            // Update display for viewer mode
+            document.getElementById('currentDb').textContent = '0.000';
+            document.getElementById('maxDb').textContent = '0.000';
+            
+            // Clear any existing chart data
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
 
         } catch (error) {
             alert('Failed to join session: ' + error.message);
         }
     }
+
+    // Update the WebSocket event listeners
+    window.addEventListener('decibelUpdate', (event) => {
+        const reading = event.detail;
+        document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
+        document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
+
+        chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
+        chart.data.datasets[0].data.push(reading.value);
+
+        while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+
+        chart.update();
+    });
+
+    window.addEventListener('sessionEnded', () => {
+        alert('Recording session has ended');
+        location.reload();
+    });
 
     // Event Listeners
     joinSession.addEventListener('click', joinViewerSession);
