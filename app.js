@@ -537,26 +537,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('[Reset View] Reset view log button clicked');
         if (meter) {
             meter.resetViewLog();
-            // Clear the UI immediately for the recorder
-            logEntries.innerHTML = '';
-            // Disable export button
-            exportBtn.disabled = true;
         }
     });
 
-    // Update the viewLogReset event listener
-    window.addEventListener('viewLogReset', (event) => {
-        console.log('[Event] viewLogReset event received', event.detail);
+    // Add new event listener for clearing logs
+    window.addEventListener('clearLogs', () => {
+        console.log('[Event] clearLogs event received');
         
-        // Clear the session log display
-        logEntries.innerHTML = '';
-        
-        // Clear the meter's session log
-        if (meter) {
-            meter.sessionLog = [];
+        // Clear the log entries display
+        const logEntries = document.getElementById('logEntries');
+        if (logEntries) {
+            logEntries.innerHTML = '';
         }
         
-        // Disable export button since there are no sessions to export
-        exportBtn.disabled = true;
+        // Disable export button
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.disabled = true;
+        }
     });
 });
