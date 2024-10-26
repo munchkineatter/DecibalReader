@@ -48,12 +48,7 @@ class DecibelMeter {
 
     stop() {
         this.isRecording = false;
-        // Send stop_session message to server
-        if (this.ws && this.role === 'recorder') {
-            this.ws.send(JSON.stringify({
-                type: 'stop_session'
-            }));
-        }
+        // Remove the WebSocket message sending
     }
 
     reset() {
@@ -231,11 +226,9 @@ class DecibelMeter {
         
         this.sessionLog.push(session);
         
-        // Only reset readings and maxDecibel if we're not stopping the session
-        if (!this.isRecording) {
-            this.readings = [];
-            this.maxDecibel = 0;
-        }
+        // Reset readings and maxDecibel but maintain connection
+        this.readings = [];
+        this.maxDecibel = 0;
         
         return session;
     }

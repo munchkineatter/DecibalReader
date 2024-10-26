@@ -143,8 +143,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (remainingTime <= 0) {
                 clearInterval(timerInterval);
-                // Stop recording but don't disconnect
-                meter.stop();
+                // Stop recording but maintain connection
+                meter.isRecording = false;  // Just stop recording, don't disconnect
                 cancelAnimationFrame(animationFrame);
                 
                 // Record the session
@@ -292,7 +292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     stopBtn.addEventListener('click', () => {
-        meter.stop();
+        meter.isRecording = false;  // Just stop recording, don't disconnect
         cancelAnimationFrame(animationFrame);
         stopTimer();
         
