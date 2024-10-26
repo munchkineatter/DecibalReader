@@ -540,20 +540,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Add new event listener for clearing logs
-    window.addEventListener('clearLogs', () => {
-        console.log('[Event] clearLogs event received');
+    // Add the resetViewLog event listener
+    window.addEventListener('resetViewLog', () => {
+        console.log('[Event] resetViewLog event received');
         
         // Clear the log entries display
-        const logEntries = document.getElementById('logEntries');
-        if (logEntries) {
-            logEntries.innerHTML = '';
-        }
+        logEntries.innerHTML = '';
         
         // Disable export button
-        const exportBtn = document.getElementById('exportBtn');
-        if (exportBtn) {
-            exportBtn.disabled = true;
-        }
+        exportBtn.disabled = true;
     });
 });

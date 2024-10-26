@@ -216,19 +216,10 @@ class DecibelMeter {
                             break;
                         case 'reset_view_log':
                             console.log('[WebSocket] Received reset_view_log message');
-                            // Clear session log for both recorder and viewer
+                            // Clear session log
                             this.sessionLog = [];
-                            // Dispatch event to update the UI
-                            window.dispatchEvent(new CustomEvent('viewLogReset', {
-                                detail: { source: 'server' }
-                            }));
-                            break;
-                        case 'clear_all_logs':
-                            console.log('[WebSocket] Clearing all logs');
-                            // Clear local session log
-                            this.sessionLog = [];
-                            // Force UI update
-                            window.dispatchEvent(new CustomEvent('clearLogs'));
+                            // Dispatch event to update UI
+                            window.dispatchEvent(new CustomEvent('resetViewLog'));
                             break;
                         default:
                             console.warn('Unhandled message type:', data.type);
@@ -415,13 +406,19 @@ class DecibelMeter {
     resetViewLog() {
         console.log('[DecibelMeter] Resetting view log');
         
+        // Clear local session log immediately
+        this.sessionLog = [];
+        
+        // Send reset command to server
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            // Send reset command regardless of role
-            console.log('[DecibelMeter] Sending clear_all_logs to server');
+            console.log('[DecibelMeter] Sending reset_view_log to server');
             this.ws.send(JSON.stringify({
-                type: 'clear_all_logs',
+                type: 'reset_view_log',
                 sessionId: this.sessionId
             }));
+            
+            // Dispatch event to update UI immediately
+            window.dispatchEvent(new CustomEvent('resetViewLog'));
         }
     }
 }
