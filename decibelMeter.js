@@ -48,6 +48,12 @@ class DecibelMeter {
 
     stop() {
         this.isRecording = false;
+        // Send stop_session message to server
+        if (this.ws && this.role === 'recorder') {
+            this.ws.send(JSON.stringify({
+                type: 'stop_session'
+            }));
+        }
     }
 
     reset() {
@@ -56,7 +62,6 @@ class DecibelMeter {
     }
 
     async connectWebSocket(role, sessionId = null) {
-        // Update WebSocket URL to use secure connection
         const wsUrl = 'wss://dbserver-jigl.onrender.com';
         
         try {
@@ -87,7 +92,7 @@ class DecibelMeter {
                             break;
                         case 'session_joined':
                             this.sessionId = sessionId;
-                            this.isRecording = true;  // Start recording for viewer
+                            this.isRecording = data.isActive;  // Set recording state based on session state
                             resolve(this.sessionId);
                             break;
                         case 'decibel_update':
@@ -153,7 +158,7 @@ class DecibelMeter {
     }
 
     handleDecibelUpdate(reading) {
-        if (!this.isRecording) return;
+        if (!this.isRecording && this.role === 'viewer') return;
         
         this.readings.push(reading);
         if (parseFloat(reading.value) > parseFloat(this.maxDecibel)) {
