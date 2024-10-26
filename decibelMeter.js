@@ -36,6 +36,14 @@ class DecibelMeter {
         this.isRecording = true;
         this.readings = [];
         this.maxDecibel = 0;
+        // Make sure analyzer is ready
+        if (!this.analyzer && this.audioContext) {
+            const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+            this.analyzer = this.audioContext.createAnalyser();
+            this.analyzer.fftSize = 2048;
+            source.connect(this.analyzer);
+            this.dataArray = new Uint8Array(this.analyzer.frequencyBinCount);
+        }
     }
 
     pause() {
@@ -48,12 +56,13 @@ class DecibelMeter {
 
     stop() {
         this.isRecording = false;
-        // Remove the WebSocket message sending
+        // Don't disconnect or reset analyzer
     }
 
     reset() {
         this.readings = [];
         this.maxDecibel = 0;
+        // Don't reset the analyzer or connection
     }
 
     async connectWebSocket(role, sessionId = null) {
@@ -135,32 +144,36 @@ class DecibelMeter {
     getCurrentDecibel() {
         if (!this.analyzer || !this.isRecording) return 0;
 
-        this.analyzer.getByteFrequencyData(this.dataArray);
-        const average = this.dataArray.reduce((acc, val) => acc + val, 0) / this.dataArray.length;
-        // Convert to number immediately
-        const decibel = parseFloat(((average / 255) * 100).toFixed(3));
-        
-        if (decibel > parseFloat(this.maxDecibel)) {
-            this.maxDecibel = decibel;
-        }
-
-        if (this.isRecording) {
-            const reading = {
-                time: new Date(),
-                value: decibel
-            };
-            this.readings.push(reading);
-
-            // Send data if we're the recorder
-            if (this.role === 'recorder' && this.ws) {
-                this.ws.send(JSON.stringify({
-                    type: 'decibel_data',
-                    data: reading
-                }));
+        try {
+            this.analyzer.getByteFrequencyData(this.dataArray);
+            const average = this.dataArray.reduce((acc, val) => acc + val, 0) / this.dataArray.length;
+            const decibel = parseFloat(((average / 255) * 100).toFixed(3));
+            
+            if (decibel > parseFloat(this.maxDecibel)) {
+                this.maxDecibel = decibel;
             }
-        }
 
-        return decibel;
+            if (this.isRecording) {
+                const reading = {
+                    time: new Date(),
+                    value: decibel
+                };
+                this.readings.push(reading);
+
+                // Send data if we're the recorder
+                if (this.role === 'recorder' && this.ws) {
+                    this.ws.send(JSON.stringify({
+                        type: 'decibel_data',
+                        data: reading
+                    }));
+                }
+            }
+
+            return decibel;
+        } catch (error) {
+            console.error('Error getting decibel data:', error);
+            return 0;
+        }
     }
 
     handleDecibelUpdate(reading) {
@@ -217,8 +230,7 @@ class DecibelMeter {
             sessionNumber: this.sessionLog.length + 1,
             id: Date.now(),
             timestamp: new Date(),
-            duration: this.readings.length > 0 ? 
-                (this.readings[this.readings.length - 1].time - this.readings[0].time) / 1000 : 0,
+            duration: this.calculateDuration(),  // New method for duration
             max: sessionData.max,
             avg: sessionData.avg,
             min: sessionData.min
@@ -226,7 +238,7 @@ class DecibelMeter {
         
         this.sessionLog.push(session);
         
-        // Reset readings and maxDecibel but maintain connection
+        // Only reset readings, not the connection
         this.readings = [];
         this.maxDecibel = 0;
         
@@ -254,5 +266,13 @@ class DecibelMeter {
             this.role = null;
             this.isRecording = false;
         }
+    }
+
+    // Add new method to calculate duration
+    calculateDuration() {
+        if (this.readings.length < 2) return 0;
+        const start = new Date(this.readings[0].time).getTime();
+        const end = new Date(this.readings[this.readings.length - 1].time).getTime();
+        return (end - start) / 1000; // Duration in seconds
     }
 }

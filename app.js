@@ -292,9 +292,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     stopBtn.addEventListener('click', () => {
-        meter.isRecording = false;  // Just stop recording, don't disconnect
+        meter.stop();
         cancelAnimationFrame(animationFrame);
         stopTimer();
+        
+        // Record the session
+        const session = meter.recordSession();
+        addSessionToLog(session);
         
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
@@ -350,6 +354,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (!chart) {
                 initializeChart();
+            } else {
+                // Clear existing chart data
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.update();
             }
             
             updateDisplay();
