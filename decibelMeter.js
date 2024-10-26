@@ -79,6 +79,7 @@ class DecibelMeter {
         try {
             this.ws = new WebSocket(wsUrl);
             this.role = role;
+            console.log(`[WebSocket] Connecting as ${this.role}`);
 
             return new Promise((resolve, reject) => {
                 this.ws.onopen = () => {
@@ -96,7 +97,7 @@ class DecibelMeter {
 
                 this.ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
-                    console.log(`WebSocket message received:`, data);
+                    console.log(`[WebSocket] Message received:`, data);
                     
                     switch(data.type) {
                         case 'session_created':
@@ -200,7 +201,7 @@ class DecibelMeter {
                             }));
                             break;
                         case 'session_reset':
-                            console.log('Received session_reset message');
+                            console.log('[WebSocket] Received session_reset message');
                             // Clear session log and readings
                             this.sessionLog = [];
                             this.readings = [];

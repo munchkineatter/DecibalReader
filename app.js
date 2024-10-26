@@ -225,10 +225,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            // Ensure 'meter' is accessible and has the correct role
+            console.log('[Viewer] Attempting to join session:', sessionId);
             await meter.connectWebSocket('viewer', sessionId);
+            console.log('[Viewer] WebSocket connected as viewer');
+
             viewerControls.classList.add('hidden');
-            
+
             if (!chart) {
                 initializeChart();
             }
@@ -482,7 +484,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     window.addEventListener('sessionReset', () => {
-        console.log('sessionReset event received');
+        console.log('[Event] sessionReset event received');
+
         // Clear the session log display
         logEntries.innerHTML = '';
 
