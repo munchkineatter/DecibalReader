@@ -12,10 +12,10 @@
         <header>
             <img src="https://i.imgur.com/RaO088v.png" alt="Decibel Monitor" class="header-logo">
             <div class="controls">
-                <button id="startBtn" class="btn record-btn">Start</button>
                 <button id="pauseBtn" class="btn" disabled>Pause</button>
                 <button id="stopBtn" class="btn" disabled>Stop</button>
                 <button id="resetBtn" class="btn" disabled>Reset</button>
+                <button id="recordBtn" class="btn record-btn">Start New Session</button>
                 <!-- Add timer controls -->
                 <div class="timer-controls">
                     <select id="timerDuration">
@@ -70,17 +70,6 @@
 
             <!-- Add this after the header -->
             <div class="session-controls">
-                <div id="viewerControls">
-                    <div class="viewer-header">
-                        <h3>Join a session:</h3>
-                        <button id="hideViewerControls" class="btn hide-btn hidden">×</button>
-                    </div>
-                    <div class="session-join">
-                        <input type="text" id="sessionIdInput" placeholder="Enter Session ID">
-                        <button id="joinSession" class="btn">Join</button>
-                    </div>
-                </div>
-                <div class="session-divider"></div>
                 <div id="recorderControls">
                     <button id="newSessionBtn" class="btn new-session-btn">Start New Session</button>
                     <div class="session-id hidden">
@@ -90,6 +79,13 @@
                             <button id="copySessionId" class="btn">Copy</button>
                         </div>
                         <button id="disconnectSession" class="btn disconnect-btn">Disconnect Session</button>
+                    </div>
+                </div>
+                <div id="viewerControls">
+                    <h3>Join a session:</h3>
+                    <div class="session-join">
+                        <input type="text" id="sessionIdInput" placeholder="Enter Session ID">
+                        <button id="joinSession" class="btn">Join</button>
                     </div>
                 </div>
             </div>

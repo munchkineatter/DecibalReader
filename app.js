@@ -19,10 +19,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const joinSession = document.getElementById('joinSession');
     const timerDuration = document.getElementById('timerDuration');
     const timerDisplay = document.getElementById('timerDisplay');
-    const hideViewerControls = document.getElementById('hideViewerControls');
-    const startBtn = document.getElementById('startBtn');
-    const newSessionBtn = document.getElementById('newSessionBtn');
-    const disconnectSession = document.getElementById('disconnectSession');
     
     let timerInterval = null;
     let remainingTime = 0;
@@ -78,21 +74,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!meter.isRecording) return;
 
         const decibel = meter.getCurrentDecibel();
-        if (decibel !== null && decibel !== undefined) {
-            document.getElementById('currentDb').textContent = parseFloat(decibel).toFixed(3);
-            document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
+        // Format the display values
+        document.getElementById('currentDb').textContent = parseFloat(decibel).toFixed(3);
+        document.getElementById('maxDb').textContent = parseFloat(meter.maxDecibel).toFixed(3);
 
-            chart.data.labels.push(new Date().toLocaleTimeString());
-            chart.data.datasets[0].data.push(parseFloat(decibel));
-
-            while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.update();
-        }
+        // Update chart
+        const timeRangeValue = parseInt(timeRange.value);
+        const now = new Date();
         
+        chart.data.labels.push(now.toLocaleTimeString());
+        chart.data.datasets[0].data.push(parseFloat(decibel));
+
+        // Remove old data points
+        while (chart.data.labels.length > timeRangeValue * 2) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+
+        chart.update();
         animationFrame = requestAnimationFrame(updateDisplay);
     }
 
@@ -141,29 +140,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             remainingTime--;
             timerDisplay.textContent = formatTime(remainingTime);
             
-            // Send timer update to viewers
-            if (meter.role === 'recorder') {
-                meter.updateTimer({ remainingTime });
-            }
-            
             if (remainingTime <= 0) {
                 clearInterval(timerInterval);
-                // Stop recording but maintain connection
-                meter.isRecording = false;  // Just stop recording, don't disconnect
+                // Stop recording
+                meter.stop();
                 cancelAnimationFrame(animationFrame);
+                
+                // Update session summary
+                const sessionData = meter.getSessionData();
+                document.getElementById('peakDb').textContent = sessionData.max;
+                document.getElementById('avgDb').textContent = sessionData.avg;
+                document.getElementById('minDb').textContent = sessionData.min;
                 
                 // Record the session
                 const session = meter.recordSession();
-                // Remove the following line to prevent duplicate log entries
-                // addSessionToLog(session);
+                addSessionToLog(session);
                 
                 // Update UI
                 pauseBtn.disabled = true;
                 stopBtn.disabled = true;
                 resetBtn.disabled = false;
                 exportBtn.disabled = false;
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start';
+                recordBtn.disabled = true;
                 timerDisplay.classList.add('hidden');
             }
         }, 1000);
@@ -192,9 +190,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const sessionId = await meter.connectWebSocket('recorder');
             sessionIdDisplay.textContent = sessionId;
             recorderControls.classList.remove('hidden');
-            // Show the hide button when session starts
-            hideViewerControls.classList.remove('hidden');
-            
+            viewerControls.classList.add('hidden');
+
             meter.start();
             pauseBtn.disabled = false;
             stopBtn.disabled = false;
@@ -205,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             updateDisplay();
-            startBtn.textContent = 'Record Session';
+            recordBtn.textContent = 'Record Session';
 
             // Start timer if duration is selected
             const duration = parseInt(timerDuration.value);
@@ -232,50 +229,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 initializeChart();
             }
 
-            // Enable/disable appropriate buttons
-            pauseBtn.disabled = true;
-            stopBtn.disabled = true;
-            resetBtn.disabled = true;
-            startBtn.disabled = true;
-            
-            // Update display for viewer mode
-            document.getElementById('currentDb').textContent = '0.000';
-            document.getElementById('maxDb').textContent = '0.000';
-            
-            // Clear any existing chart data
-            chart.data.labels = [];
-            chart.data.datasets[0].data = [];
-            chart.update();
+            // Listen for decibel updates
+            window.addEventListener('decibelUpdate', (event) => {
+                const reading = event.detail;
+                document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
+                // Use the maxDecibel from the event
+                document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
+
+                if (chart) {
+                    chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
+                    chart.data.datasets[0].data.push(reading.value);
+
+                    while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
+                        chart.data.labels.shift();
+                        chart.data.datasets[0].data.shift();
+                    }
+
+                    chart.update();
+                }
+            });
+
+            // Listen for session end
+            window.addEventListener('sessionEnded', () => {
+                alert('Recording session has ended');
+                location.reload();
+            });
 
         } catch (error) {
             alert('Failed to join session: ' + error.message);
         }
     }
-
-    // Update the WebSocket event listeners
-    window.addEventListener('decibelUpdate', (event) => {
-        const reading = event.detail;
-        document.getElementById('currentDb').textContent = parseFloat(reading.value).toFixed(3);
-        // Use the maxDecibel from the event
-        document.getElementById('maxDb').textContent = parseFloat(reading.maxDecibel).toFixed(3);
-
-        if (chart) {
-            chart.data.labels.push(new Date(reading.time).toLocaleTimeString());
-            chart.data.datasets[0].data.push(reading.value);
-
-            while (chart.data.labels.length > parseInt(timeRange.value) * 2) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.update();
-        }
-    });
-
-    window.addEventListener('sessionEnded', () => {
-        alert('Recording session has ended');
-        location.reload();
-    });
 
     // Event Listeners
     joinSession.addEventListener('click', joinViewerSession);
@@ -305,17 +288,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelAnimationFrame(animationFrame);
         stopTimer();
         
-        // Record the session
-        const session = meter.recordSession();
-        // Remove the following line to prevent duplicate log entries
-        // addSessionToLog(session);
-        
         pauseBtn.disabled = true;
         stopBtn.disabled = true;
         resetBtn.disabled = false;
         exportBtn.disabled = false;
-        startBtn.disabled = false;
-        startBtn.textContent = 'Start';
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Start New Session';
     });
 
     resetBtn.addEventListener('click', () => {
@@ -328,13 +306,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('currentDb').textContent = '0';
         document.getElementById('maxDb').textContent = '0';
         
-        // Clear the session log display
-        logEntries.innerHTML = '';
-        
         resetBtn.disabled = true;
         exportBtn.disabled = true;
-        startBtn.disabled = false;
-        startBtn.textContent = 'Start';
+        recordBtn.disabled = false;
+        recordBtn.textContent = 'Start New Session';
     });
 
     exportBtn.addEventListener('click', () => {
@@ -348,133 +323,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Update the startBtn event listener
-    startBtn.addEventListener('click', async () => {
-        if (!meter.audioContext) {
-            const initialized = await meter.initialize();
-            if (!initialized) {
-                alert('Failed to initialize audio. Please check your microphone permissions.');
-                return;
-            }
-        }
-
+    recordBtn.addEventListener('click', () => {
         if (!meter.isRecording) {
-            meter.start();
-            startBtn.disabled = true;
-            pauseBtn.disabled = false;
-            stopBtn.disabled = false;
-            resetBtn.disabled = true;
-            
-            if (!chart) {
-                initializeChart();
-            } else {
-                // Clear existing chart data
-                chart.data.labels = [];
-                chart.data.datasets[0].data = [];
-                chart.update();
-            }
-            
-            // Make sure session ID is displayed
-            if (meter.sessionId) {
-                recorderControls.querySelector('.session-id').classList.remove('hidden');
-            }
-            
-            updateDisplay();
-
-            // Start timer if duration is selected
-            const duration = parseInt(timerDuration.value);
-            if (duration) {
-                startTimer(duration);
-            }
+            startRecording();
+        } else {
+            const session = meter.recordSession();
+            addSessionToLog(session);
         }
     });
-
-    newSessionBtn.addEventListener('click', async () => {
-        try {
-            const sessionId = await meter.connectWebSocket('recorder');
-            sessionIdDisplay.textContent = sessionId;
-            recorderControls.classList.remove('hidden');
-            hideViewerControls.classList.remove('hidden');
-            
-            // Enable start button for the new session
-            startBtn.disabled = false;
-            startBtn.textContent = 'Start';
-            
-            // Reset other controls
-            pauseBtn.disabled = true;
-            stopBtn.disabled = true;
-            resetBtn.disabled = true;
-            
-            // Reset display
-            document.getElementById('currentDb').textContent = '0.000';
-            document.getElementById('maxDb').textContent = '0.000';
-            
-            if (chart) {
-                chart.data.labels = [];
-                chart.data.datasets[0].data = [];
-                chart.update();
-            }
-        } catch (error) {
-            alert('Failed to create recording session: ' + error.message);
-        }
-    });
-
-    hideViewerControls.addEventListener('click', () => {
-        // Remove the entire session-controls element
-        const sessionControlsElement = document.querySelector('.session-controls');
-        if (sessionControlsElement) {
-            sessionControlsElement.remove();
-        }
-    });
-
-    // Add timer sync event listener
-    window.addEventListener('timerSync', (event) => {
-        const timerData = event.detail;
-        if (timerData) {
-            remainingTime = timerData.remainingTime;
-            if (remainingTime > 0) {
-                timerDisplay.classList.remove('hidden');
-                timerDisplay.textContent = formatTime(remainingTime);
-                // Only start the timer if we're not already counting
-                if (!timerInterval) {
-                    startTimer(remainingTime);
-                }
-            }
-        }
-    });
-
-    // Add disconnect button event listener
-    disconnectSession.addEventListener('click', () => {
-        if (meter.ws) {
-            meter.disconnectSession();
-            // Hide session controls
-            recorderControls.querySelector('.session-id').classList.add('hidden');
-            // Reset UI
-            startBtn.disabled = false;
-            startBtn.textContent = 'Start';
-            pauseBtn.disabled = true;
-            stopBtn.disabled = true;
-            resetBtn.disabled = true;
-            // Clear display
-            document.getElementById('currentDb').textContent = '0.000';
-            document.getElementById('maxDb').textContent = '0.000';
-            if (chart) {
-                chart.data.labels = [];
-                chart.data.datasets[0].data = [];
-                chart.update();
-            }
-        }
-    });
-
-    // Update the sessionLogged event listener
-    window.addEventListener('sessionLogged', (event) => {
-        const session = event.detail;
-        // Always add the session to the log, regardless of role
-        addSessionToLog(session);
-    });
-
-    // Update handleDecibelUpdate in DecibelMeter class to include source
-    window.dispatchEvent(new CustomEvent('sessionLogged', {
-        detail: { ...session, source: 'server' }
-    }));
 });
