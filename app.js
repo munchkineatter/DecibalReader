@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const timerDuration = document.getElementById('timerDuration');
     const timerDisplay = document.getElementById('timerDisplay');
     const hideViewerControls = document.getElementById('hideViewerControls');
+    const startBtn = document.getElementById('startBtn');
+    const newSessionBtn = document.getElementById('newSessionBtn');
     
     let timerInterval = null;
     let remainingTime = 0;
@@ -151,8 +153,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 stopBtn.disabled = true;
                 resetBtn.disabled = false;
                 exportBtn.disabled = false;
-                recordBtn.disabled = false;
-                recordBtn.textContent = 'Start New Session';
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start New Session';
                 timerDisplay.classList.add('hidden');
             }
         }, 1000);
@@ -194,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             updateDisplay();
-            recordBtn.textContent = 'Record Session';
+            startBtn.textContent = 'Record Session';
 
             // Start timer if duration is selected
             const duration = parseInt(timerDuration.value);
@@ -225,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             pauseBtn.disabled = true;
             stopBtn.disabled = true;
             resetBtn.disabled = true;
-            recordBtn.disabled = true;
+            startBtn.disabled = true;
             
             // Update display for viewer mode
             document.getElementById('currentDb').textContent = '0.000';
@@ -295,8 +297,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         stopBtn.disabled = true;
         resetBtn.disabled = false;
         exportBtn.disabled = false;
-        recordBtn.disabled = false;
-        recordBtn.textContent = 'Start New Session';
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start';
     });
 
     resetBtn.addEventListener('click', () => {
@@ -311,8 +313,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         resetBtn.disabled = true;
         exportBtn.disabled = true;
-        recordBtn.disabled = false;
-        recordBtn.textContent = 'Start New Session';
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start';
     });
 
     exportBtn.addEventListener('click', () => {
@@ -326,18 +328,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    recordBtn.addEventListener('click', () => {
+    startBtn.addEventListener('click', () => {
         if (!meter.isRecording) {
-            // Starting new session
-            startRecording();
-            recordBtn.textContent = 'Record Session';
-        } else {
-            // Recording current session
-            const session = meter.recordSession();
-            addSessionToLog(session);
-            // Don't stop the recording, just reset the readings for the next session
-            meter.readings = [];
-            meter.maxDecibel = 0;
+            meter.start();
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            resetBtn.disabled = true;
+            
+            if (!chart) {
+                initializeChart();
+            }
+            
+            updateDisplay();
+
+            // Start timer if duration is selected
+            const duration = parseInt(timerDuration.value);
+            if (duration) {
+                startTimer(duration);
+            }
+        }
+    });
+
+    newSessionBtn.addEventListener('click', async () => {
+        try {
+            const sessionId = await meter.connectWebSocket('recorder');
+            sessionIdDisplay.textContent = sessionId;
+            recorderControls.classList.remove('hidden');
+            hideViewerControls.classList.remove('hidden');
+            
+            // Enable start button for the new session
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start';
+            
+            // Reset other controls
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            resetBtn.disabled = true;
+            
+            // Reset display
+            document.getElementById('currentDb').textContent = '0.000';
+            document.getElementById('maxDb').textContent = '0.000';
+            
+            if (chart) {
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.update();
+            }
+        } catch (error) {
+            alert('Failed to create recording session: ' + error.message);
         }
     });
 

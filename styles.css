@@ -241,114 +241,31 @@ canvas#decibelGraph {
     border-radius: 8px;
     margin: 1rem 0;
     text-align: center;
-    position: relative; /* Add this for proper positioning */
+}
+
+.session-divider {
+    height: 1px;
+    background: rgba(247, 245, 242, 0.1);
+    margin: 1rem 0;
 }
 
 .session-id {
+    margin-top: 1rem;
+}
+
+.session-id-content {
     display: flex;
     justify-content: center;
     gap: 1rem;
-    margin: 1rem 0;
+    margin-top: 0.5rem;
 }
 
-.session-join {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin: 1rem 0;
-}
-
-#sessionIdInput {
-    padding: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid var(--primary-color);
-    background: var(--dark-color);
-    color: var(--text-light);
-}
-
-.hidden {
-    display: none;
-}
-
-.timer-controls {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: 10px;
-}
-
-#timerDuration {
-    padding: 5px;
-    border-radius: 4px;
-    background-color: #2c2c2c;
-    color: #F7F5F2;
-    border: 1px solid #444;
-}
-
-#timerDisplay {
-    font-family: monospace;
-    font-size: 1.2em;
-    color: #F7F5F2;
-    background-color: #2c2c2c;
-    padding: 5px 10px;
-    border-radius: 4px;
-    min-width: 70px;
-    text-align: center;
-}
-
-#timerDisplay.hidden {
-    display: none;
-}
-
-/* Update session-log styles */
-.session-log {
-    background: var(--card-bg);
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    height: fit-content;
-    max-height: 80vh;
-    overflow-y: auto;
-    border: 1px solid rgba(247, 245, 242, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.log-entries {
-    flex-grow: 1;
-    overflow-y: auto;
-}
-
-.export-btn {
+.new-session-btn {
     width: 100%;
-    margin: 0;
     background-color: var(--secondary-color);
+    margin: 0;
 }
 
-.export-btn:hover:not(:disabled) {
-    background-color: var(--primary-color);
-}
-
-/* Add these new styles */
-.viewer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.hide-btn {
-    padding: 0.2rem 0.6rem;
-    font-size: 1.2rem;
-    line-height: 1;
-    background-color: transparent;
-    border: 1px solid var(--primary-color);
-    position: absolute; /* Position the button */
-    right: 10px;
-    top: 10px;
-}
-
-.hide-btn:hover {
+.new-session-btn:hover:not(:disabled) {
     background-color: var(--primary-color);
 }
